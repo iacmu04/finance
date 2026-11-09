@@ -1167,3 +1167,36 @@ function formatDateForInput(dateStr) {
   }
   return dateStr;
 }
+
+
+/**
+ * API Connection Modal Functions
+ */
+function openApiUrlModal() {
+  const modal = document.getElementById('modal-api-url');
+  const input = document.getElementById('input-api-url');
+  const statusEl = document.getElementById('api-connection-status');
+  if (!modal || !input) return;
+
+  input.value = Api.getScriptUrl() || '';
+  if (statusEl) {
+    statusEl.innerHTML = input.value
+      ? '<span style="color: #10b981;">✓ เชื่อมต่อกับ URL ที่ระบุไว้แล้ว</span>'
+      : '<span style="color: #f59e0b;">⚠️ ยังไม่ได้ระบุ URL ระบบจะแสดงข้อมูลจำลองเพื่อการทดสอบ</span>';
+  }
+  modal.classList.add('active');
+}
+
+async function saveApiUrl() {
+  const input = document.getElementById('input-api-url');
+  const modal = document.getElementById('modal-api-url');
+  if (!input) return;
+
+  const url = input.value.trim();
+  Api.setScriptUrl(url);
+  showToast('บันทึก Web App API URL เรียบร้อย กำลังรีเฟรชข้อมูล...', 'success');
+  if (modal) modal.classList.remove('active');
+
+  await loadInitialData();
+  await refreshTrackingData();
+}

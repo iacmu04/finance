@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบติดตามงานตรวจสอบงบการเงิน | Finance Report Tracking System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <?!= include("Stylesheet"); ?>
+</head>
+<body>
+
+  <!-- Application Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-section">
+        <div class="brand-logo">📊</div>
+        <div class="brand-title">
+          <h1>ระบบติดตามงานตรวจสอบงบการเงิน</h1>
+          <p>สำนักงานตรวจสอบภายใน มหาวิทยาลัยเชียงใหม่ (CMU Audit Office)</p>
+        </div>
+      </div>
+
+      <div class="user-panel">
+        <div class="user-badge">
+          <span>👤</span>
+          <div>
+            <div id="user-display-name" style="font-weight: 600;">กำลังโหลด...</div>
+            <div id="user-group-name" style="font-size: 0.75rem; color: #ddd6fe;">-</div>
+          </div>
+          <span id="user-role-badge" class="role-tag Guest">Guest</span>
+        </div>
+
+        
+        <!-- ปุ่มตั้งค่า API URL สำหรับเชื่อมต่อ Google Sheets บน GitHub Pages -->
+        <button id="btn-config-api-url" class="btn btn-secondary btn-sm" onclick="openApiUrlModal()" style="border-radius: 20px; font-size: 0.75rem;">
+          🔗 ตั้งค่า API Google Sheets
+        </button>
+
+        <!-- Role Preview Switcher สำหรับทดสอบหรือผู้ดูแล -->
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 0.75rem; color: #ddd6fe;">มุมมองสิทธิ์:</span>
+          <select id="role-switcher-select" class="role-switcher-select" title="สลับมุมมองสิทธิ์เพื่อทดสอบ">
+            <option value="Dean">Dean (ผู้อำนวยการ)</option>
+            <option value="Leader">Leader (หัวหน้ากลุ่มงาน)</option>
+            <option value="User">User (ผู้ตรวจสอบ)</option>
+            <option value="Admin">Admin (ผู้ดูแลระบบ)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="nav-tabs">
+    <div class="nav-tab-item active" data-tab="dashboard">
+      <span>📊</span> ภาพรวม Dashboard
+    </div>
+    <div class="nav-tab-item" data-tab="tracking">
+      <span>📋</span> ติดตามงานตรวจสอบ
+    </div>
+    <div class="nav-tab-item" data-tab="departments">
+      <span>👥</span> ทะเบียนส่วนงาน & ผู้รับผิดชอบ
+    </div>
+    <div class="nav-tab-item admin-only" data-tab="settings">
+      <span>⚙️</span> การตั้งค่าระบบ &amp; Audit Log
+    </div>
+  </nav>
+
+  <!-- Main Body Content -->
+  <main class="main-wrapper">
+
+    <!-- Global Toolbar / Filters -->
+    <section class="toolbar-container">
+      <div class="filter-group">
+        <label class="form-label" style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">ปีงบประมาณ:</label>
+        <select id="filter-fy" class="filter-select">
+          <option value="2570" selected>2570</option>
+          <option value="2569">2569</option>
+          <option value="2571">2571</option>
+        </select>
+
+        <select id="filter-cycle" class="filter-select">
+          <option value="">-- รอบรายงานทั้งหมด --</option>
+          <option value="รายเดือน">รายเดือน</option>
+          <option value="รายไตรมาส">รายไตรมาส</option>
+        </select>
+
+        <select id="filter-group" class="filter-select">
+          <option value="">-- ทุกกลุ่มงาน --</option>
+          <option value="งานตรวจสอบ 1">งานตรวจสอบ 1</option>
+          <option value="งานตรวจสอบ 2">งานตรวจสอบ 2</option>
+          <option value="งานตรวจสอบ 3">งานตรวจสอบ 3</option>
+          <option value="งานบริหารและธุรการ">งานบริหารและธุรการ</option>
+        </select>
+
+        <select id="filter-auditor" class="filter-select">
+          <option value="">-- ผู้ตรวจสอบทั้งหมด --</option>
+        </select>
+
+        <select id="filter-department" class="filter-select">
+          <option value="">-- ส่วนงานทั้งหมด --</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <input type="text" id="filter-search" class="search-input" placeholder="🔍 ค้นหารหัส, ส่วนงาน, ผู้ตรวจสอบ...">
+        <button class="btn btn-primary" onclick="openTrackingModal()">
+          <span>+</span> เพิ่มรายการตรวจสอบ
+        </button>
+      </div>
+    </section>
+
+    <!-- TAB 1: DASHBOARD -->
+    <section id="tab-dashboard" class="tab-content-section">
+
+      <!-- Highlight Card: งานค้างส่งงบการเงินที่ไม่เป็นปัจจุบัน -->
+      <div class="lagging-highlight-card">
+        <div class="lagging-info">
+          <h3>
+            <span>⚠️</span> งานค้างส่งงบการเงินที่ไม่เป็นปัจจุบัน (Lagging Periods)
+          </h3>
+          <p>
+            ตรวจสอบส่วนงานที่ยังไม่ส่งงบการเงินตามรอบที่ควรจะเป็นปัจจุบัน (เกณฑ์ส่งงบไม่เกินวันที่ 20 ของเดือนถัดไป)
+          </p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <div>
+            <div style="font-size: 0.75rem; color: #9a3412; font-weight: 600; text-align: right;">จำนวนงวดที่ค้างส่ง</div>
+            <div id="lagging-total-count" class="lagging-badge-count">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ตารางรายละเอียดงบที่ค้างส่ง -->
+      <div id="lagging-reports-container" style="margin-bottom: 24px;"></div>
+
+      <!-- Summary Stat Cards -->
+      <div class="summary-grid">
+        <div class="stat-card card-purple">
+          <div class="stat-header">
+            <span class="stat-title">งานตรวจสอบทั้งหมด</span>
+            <span class="stat-icon" style="background: #f5f3ff; color: #7c3aed;">📑</span>
+          </div>
+          <div class="stat-value" id="stat-total">0</div>
+          <div class="stat-sub">รายการในรอบปีงบประมาณ</div>
+        </div>
+
+        <div class="stat-card card-sky">
+          <div class="stat-header">
+            <span class="stat-title">ได้รับงบแล้ว</span>
+            <span class="stat-icon" style="background: #f0f9ff; color: #0284c7;">📥</span>
+          </div>
+          <div class="stat-value" id="stat-received">0</div>
+          <div class="stat-sub">สารบรรณส่งมอบแล้ว</div>
+        </div>
+
+        <div class="stat-card card-blue">
+          <div class="stat-header">
+            <span class="stat-title">กำลังตรวจสอบ</span>
+            <span class="stat-icon" style="background: #eef2ff; color: #4f46e5;">🔍</span>
+          </div>
+          <div class="stat-value" id="stat-in-progress">0</div>
+          <div class="stat-sub">อยู่ระหว่างดำเนินการ</div>
+        </div>
+
+        <div class="stat-card card-green">
+          <div class="stat-header">
+            <span class="stat-title">เสนอ ผอ. ทันกำหนด KPI</span>
+            <span class="stat-icon" style="background: #ecfdf5; color: #10b981;">⏱️</span>
+          </div>
+          <div class="stat-value" id="stat-kpi-ontime" style="color: #059669;">0 (100%)</div>
+          <div class="stat-sub">ภายใน 20 วันปฏิทิน</div>
+        </div>
+
+        <div class="stat-card card-red">
+          <div class="stat-header">
+            <span class="stat-title">เกินกำหนด 20 วัน</span>
+            <span class="stat-icon" style="background: #fef2f2; color: #ef4444;">🚨</span>
+          </div>
+          <div class="stat-value" id="stat-kpi-overdue" style="color: #dc2626;">0</div>
+          <div class="stat-sub">ต้องเร่งรัดการดำเนินงาน</div>
+        </div>
+
+        <div class="stat-card card-green">
+          <div class="stat-header">
+            <span class="stat-title">เสนออธิการบดีแล้ว</span>
+            <span class="stat-icon" style="background: #ecfdf5; color: #059669;">🏛️</span>
+          </div>
+          <div class="stat-value" id="stat-completed">0</div>
+          <div class="stat-sub">เสร็จสิ้นสมบูรณ์</div>
+        </div>
+      </div>
+
+      <!-- สถิติการแก้ไขสำหรับ ผอ. (Dean Only) -->
+      <div class="dean-only" style="margin-bottom: 24px;">
+        <div class="summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+          <div class="stat-card card-amber">
+            <div class="stat-header">
+              <span class="stat-title">อยู่ระหว่างส่งกลับแก้ไข</span>
+              <span class="stat-icon" style="background: #fffbeb; color: #d97706;">🔄</span>
+            </div>
+            <div class="stat-value" id="stat-pending-edit" style="color: #d97706;">0</div>
+            <div class="stat-sub">ผอ. ส่งกลับและรอผู้ตรวจส่งคืน</div>
+          </div>
+
+          <div class="stat-card card-purple">
+            <div class="stat-header">
+              <span class="stat-title">จำนวนรอบแก้ไขสะสม</span>
+              <span class="stat-icon" style="background: #f5f3ff; color: #6d28d9;">🔢</span>
+            </div>
+            <div class="stat-value" id="stat-total-edit-rounds" style="color: #6d28d9;">0</div>
+            <div class="stat-sub">รวมทุกรายการในรอบปี</div>
+          </div>
+
+          <div class="stat-card card-purple">
+            <div class="stat-header">
+              <span class="stat-title">เวลารวมที่ใช้แก้ไข</span>
+              <span class="stat-icon" style="background: #f5f3ff; color: #6d28d9;">⏳</span>
+            </div>
+            <div class="stat-value" id="stat-total-edit-days" style="color: #6d28d9;">0 วัน</div>
+            <div class="stat-sub">นับเฉพาะรอบที่ส่งคืน ผอ. แล้ว</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- รายละเอียดประสิทธิภาพรายบุคคล / กลุ่มงาน -->
+      <div class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>📈</span> ประสิทธิภาพการดำเนินงานของผู้ตรวจสอบ
+          </div>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">
+            เกณฑ์ KPI: เสนอ ผอ. ภายใน 20 วันนับจากวันที่ผู้ตรวจรับงบ
+          </span>
+        </div>
+        <div id="auditor-performance-container">
+          <!-- Table dynamically injected -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- TAB 2: TRACKING LIST -->
+    <section id="tab-tracking" class="tab-content-section" style="display: none;">
+      <div class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>📋</span> ทะเบียนติดตามงานตรวจสอบงบการเงิน
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="refreshTrackingData()">
+            <span>🔄</span> รีเฟรชข้อมูล
+          </button>
+        </div>
+        <div class="table-responsive" id="tracking-table-container">
+          <!-- Tracking Table dynamically injected -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: DEPARTMENTS REGISTRY -->
+    <section id="tab-departments" class="tab-content-section" style="display: none;">
+      <div class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>👥</span> ทะเบียนส่วนงานและผู้รับผิดชอบ
+          </div>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">
+            การเปลี่ยนผู้รับผิดชอบใหม่ จะปรับสถานะรายการเดิมเป็น "ยกเลิก" และสร้างรายการใหม่ "ใช้งาน" อัตโนมัติ
+          </span>
+        </div>
+        <div class="table-responsive" id="departments-table-container">
+          <!-- Departments table dynamically injected -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: SETTINGS & SYSTEM LOG -->
+    <section id="tab-settings" class="tab-content-section admin-only" style="display: none;">
+      <div class="form-row" style="margin-bottom: 24px;">
+        <!-- KPI Configuration Card -->
+        <div class="panel-card">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>⚙️</span> กำหนดเกณฑ์ KPI ระยะเวลาเสนอรายงาน
+            </div>
+          </div>
+          <form id="config-form" style="display: flex; flex-direction: column; gap: 14px;">
+            <div class="form-group">
+              <label class="form-label">จำนวนวันปฏิทินที่กำหนดให้เสนอ ผอ. (วัน):</label>
+              <input type="number" id="config-kpi-days" class="form-control" style="max-width: 140px;" min="1" max="90" required>
+              <span style="font-size: 0.78rem; color: var(--text-muted);">
+                (เริ่มนับจากวันที่ผู้ตรวจสอบได้รับงบ รวมวันหยุดเสาร์-อาทิตย์และนักขัตฤกษ์ โดย Admin เป็นผู้แก้ไขได้เท่านั้น)
+              </span>
+            </div>
+            <button type="submit" class="btn btn-primary" style="align-self: flex-start;">
+              บันทึกการตั้งค่า
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- System Log Panel -->
+      <div class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>📜</span> บันทึกประวัติการทำรายการ (SystemLog Audit Trail)
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="loadSystemLogs()">
+            รีเฟรช Log
+          </button>
+        </div>
+        <div id="system-logs-container">
+          <!-- Log table dynamically injected -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- =========================================================================
+       MODALS
+       ========================================================================= -->
+
+  <!-- Modal 1: บันทึก/จัดการงานตรวจสอบ (Tracking Form) -->
+  <div id="modal-tracking" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-tracking-title">บันทึกข้อมูลงานตรวจสอบ</h3>
+        <button class="modal-close" onclick="closeModal('modal-tracking')">&times;</button>
+      </div>
+      <form id="tracking-form">
+        <div class="modal-body">
+          <input type="hidden" id="input-track-id">
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">ปีงบประมาณ <span class="req">*</span></label>
+              <select id="input-track-fy" class="form-control" required>
+                <option value="2570">2570</option>
+                <option value="2569">2569</option>
+                <option value="2571">2571</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">รอบการรายงาน <span class="req">*</span></label>
+              <input type="text" id="input-track-cycle" class="form-control" readonly style="background: #f1f5f9;">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">ส่วนงาน <span class="req">*</span></label>
+            <select id="input-track-dept" class="form-control" required>
+              <!-- Injected dynamically -->
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">งวดรายงาน <span class="req">*</span></label>
+              <select id="input-track-period" class="form-control" required>
+                <!-- Injected dynamically -->
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">ผู้ตรวจสอบที่รับผิดชอบ</label>
+              <input type="text" id="input-track-auditor" class="form-control" readonly style="background: #f1f5f9;">
+            </div>
+          </div>
+
+          <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 6px 0;">
+          <h4 style="font-size: 0.92rem; color: var(--primary);">📅 บันทึกวันที่ตามกระบวนการดำเนินงาน</h4>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">วันที่ได้รับงบจากส่วนงาน (สารบรรณรับ)</label>
+              <input type="date" id="input-date-dept" class="form-control">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">วันที่ผู้ตรวจสอบได้รับงบ (เริ่มนับ KPI 20 วัน)</label>
+              <input type="date" id="input-date-auditor" class="form-control">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">วันที่ผู้ตรวจสอบเสนองบให้หัวหน้า</label>
+              <input type="date" id="input-date-leader" class="form-control">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">วันที่เสนองบให้ ผอ. (สิ้นสุดนับ KPI 20 วัน)</label>
+              <input type="date" id="input-date-dean" class="form-control">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">วันที่ผู้อำนวยการเห็นชอบรายงานสมบูรณ์</label>
+              <input type="date" id="input-date-approved" class="form-control">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">วันที่เสนออธิการบดี (เสร็จสิ้น)</label>
+              <input type="date" id="input-date-president" class="form-control" readonly style="background: #f1f5f9;">
+            </div>
+          </div>
+
+          <!-- Dean Specific Action Panel -->
+          <div id="dean-workflow-actions" style="background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: var(--radius-md); padding: 14px; display: none; flex-direction: column; gap: 8px;">
+            <div style="font-size: 0.85rem; font-weight: 600; color: #5b21b6;">การพิจารณาของผู้อำนวยการ (Dean Workflow)</div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="button" id="btn-dean-approve" class="btn btn-purple btn-sm" onclick="onDeanApprove()">
+                ✓ ผอ. เห็นชอบรายงานสมบูรณ์
+              </button>
+              <button type="button" id="btn-dean-complete" class="btn btn-success btn-sm" onclick="onDeanComplete()">
+                🏛️ เสร็จสิ้นและเสนออธิการบดี
+              </button>
+              <button type="button" id="btn-dean-cancel" class="btn btn-danger btn-sm" onclick="onDeanCancelCompletion()" style="display: none;">
+                ✕ ยกเลิกการเสนออธิการบดี
+              </button>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-tracking')">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary">บันทึกข้อมูล</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 2: ประวัติการส่งกลับแก้ไข (Edit History) -->
+  <div id="modal-edit" class="modal-overlay">
+    <div class="modal-content" style="max-width: 780px;">
+      <div class="modal-header">
+        <h3 id="modal-edit-title">ประวัติการส่งกลับแก้ไขรายงาน</h3>
+        <button class="modal-close" onclick="closeModal('modal-edit')">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- รายการรอบแก้ไขเดิม -->
+        <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 6px;">ประวัติรอบการแก้ไข</h4>
+        <div id="edit-rounds-container" style="margin-bottom: 20px;">
+          <!-- Rounds table injected dynamically -->
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin-bottom: 16px;">
+
+        <!-- ฟอร์มเพิ่มรอบแก้ไขใหม่ หรือ บันทึกส่งคืน -->
+        <h4 style="font-size: 0.95rem; font-weight: 600; color: #6d28d9; margin-bottom: 10px;">
+          + บันทึกการส่งกลับแก้ไขรอบใหม่ / ส่งคืน ผอ.
+        </h4>
+        <form id="new-edit-round-form">
+          <input type="hidden" id="input-edit-tracking-id">
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">วันที่ผู้อำนวยการส่งกลับแก้ไข <span class="req">*</span></label>
+              <input type="date" id="input-edit-date-return" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">วันที่ผู้ตรวจสอบส่งคืนผู้อำนวยการ (ถ้ามี)</label>
+              <input type="date" id="input-edit-date-resubmit" class="form-control">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">หมายเหตุ / ประเด็นข้อสังเกตที่ให้แก้ไข</label>
+            <textarea id="input-edit-note" class="form-control" rows="3" placeholder="ระบุประเด็นหรือข้อแก้ไขที่ ผอ. สั่งการ..."></textarea>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+            <button type="submit" class="btn btn-purple">
+              บันทึกรอบการแก้ไข
+            </button>
+          </div>
+        </form>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-edit')">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: เปลี่ยนตัวผู้รับผิดชอบส่วนงาน -->
+  <div id="modal-change-auditor" class="modal-overlay">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3>เปลี่ยนผู้ตรวจสอบที่รับผิดชอบส่วนงาน</h3>
+        <button class="modal-close" onclick="closeModal('modal-change-auditor')">&times;</button>
+      </div>
+      <form id="change-auditor-form">
+        <div class="modal-body">
+          <input type="hidden" id="change-dept-code">
+
+          <div class="form-group">
+            <label class="form-label">ส่วนงาน:</label>
+            <div id="change-dept-name-display" style="font-weight: 600; color: var(--primary);"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">ผู้รับผิดชอบเดิม:</label>
+            <div id="change-dept-old-auditor" style="color: var(--text-muted);"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">เลือกผู้รับผิดชอบใหม่ <span class="req">*</span></label>
+            <select id="change-dept-new-auditor" class="form-control" required>
+              <!-- Injected dynamically -->
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">วันที่เริ่มรับผิดชอบ <span class="req">*</span></label>
+            <input type="date" id="change-dept-start-date" class="form-control" required>
+          </div>
+
+          <div style="font-size: 0.8rem; color: #b45309; background: #fffbeb; padding: 10px; border-radius: var(--radius-sm);">
+            ℹ️ ระบบจะเปลี่ยนสถานะของผู้รับผิดชอบเดิมเป็น "ยกเลิก" และสร้างรายการใหม่เป็น "ใช้งาน" ให้โดยอัตโนมัติ
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-change-auditor')">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary">ยืนยันการเปลี่ยนผู้รับผิดชอบ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  
+  <!-- Modal: ตั้งค่า Google Apps Script Web App URL -->
+  <div id="modal-api-url" class="modal-overlay">
+    <div class="modal-content" style="max-width: 540px;">
+      <div class="modal-header">
+        <h3>🔗 ตั้งค่าการเชื่อมต่อ Google Sheets API</h3>
+        <button class="modal-close" onclick="closeModal('modal-api-url')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-muted);">
+          เมื่อนำเว็บขึ้น GitHub Pages ให้ใส่ <strong>Web App URL</strong> ที่ได้จากการ Deploy ใน Google Apps Script (เช่น <code>https://script.google.com/macros/s/.../exec</code>) เพื่อให้หน้าเว็บดึงและบันทึกข้อมูลกับ Google Sheets ได้แบบ Real-time
+        </p>
+        <div class="form-group" style="margin-top: 10px;">
+          <label class="form-label">Google Apps Script Web App URL:</label>
+          <input type="url" id="input-api-url" class="form-control" placeholder="https://script.google.com/macros/s/.../exec">
+        </div>
+        <div id="api-connection-status" style="font-size: 0.8rem; margin-top: 6px;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-api-url')">ปิด</button>
+        <button type="button" class="btn btn-primary" onclick="saveApiUrl()">บันทึกและเชื่อมต่อ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Global Loading Indicator -->
+  <div id="global-loading" class="modal-overlay" style="background: rgba(255, 255, 255, 0.7); z-index: 300;">
+    <div style="background: #ffffff; padding: 20px 30px; border-radius: 12px; box-shadow: var(--shadow-lg); display: flex; align-items: center; gap: 14px;">
+      <div style="font-size: 1.5rem; animation: spin 1s linear infinite;">⏳</div>
+      <div style="font-weight: 500;">กำลังประมวลผล...</div>
+    </div>
+  </div>
+
+  <style>
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+
+  <!-- Script Includes -->
+  <?!= include("JavaScript"); ?>
+</body>
+</html>
