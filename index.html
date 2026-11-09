@@ -33,10 +33,7 @@
         </div>
 
         
-        <!-- ปุ่มตั้งค่า API URL สำหรับเชื่อมต่อ Google Sheets บน GitHub Pages -->
-        <button id="btn-config-api-url" class="btn btn-secondary btn-sm" onclick="openApiUrlModal()" style="border-radius: 20px; font-size: 0.75rem;">
-          🔗 ตั้งค่า API Google Sheets
-        </button>
+
 
         <!-- Role Preview Switcher สำหรับทดสอบหรือผู้ดูแล -->
         <div style="display: flex; align-items: center; gap: 6px;">
@@ -536,30 +533,6 @@
   </div>
 
   
-  <!-- Modal: ตั้งค่า Google Apps Script Web App URL -->
-  <div id="modal-api-url" class="modal-overlay">
-    <div class="modal-content" style="max-width: 540px;">
-      <div class="modal-header">
-        <h3>🔗 ตั้งค่าการเชื่อมต่อ Google Sheets API</h3>
-        <button class="modal-close" onclick="closeModal('modal-api-url')">&times;</button>
-      </div>
-      <div class="modal-body">
-        <p style="font-size: 0.85rem; color: var(--text-muted);">
-          เมื่อนำเว็บขึ้น GitHub Pages ให้ใส่ <strong>Web App URL</strong> ที่ได้จากการ Deploy ใน Google Apps Script (เช่น <code>https://script.google.com/macros/s/.../exec</code>) เพื่อให้หน้าเว็บดึงและบันทึกข้อมูลกับ Google Sheets ได้แบบ Real-time
-        </p>
-        <div class="form-group" style="margin-top: 10px;">
-          <label class="form-label">Google Apps Script Web App URL:</label>
-          <input type="url" id="input-api-url" class="form-control" placeholder="https://script.google.com/macros/s/.../exec">
-        </div>
-        <div id="api-connection-status" style="font-size: 0.8rem; margin-top: 6px;"></div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-api-url')">ปิด</button>
-        <button type="button" class="btn btn-primary" onclick="saveApiUrl()">บันทึกและเชื่อมต่อ</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Toast Notification Container -->
   <div id="toast-container" class="toast-container"></div>
 

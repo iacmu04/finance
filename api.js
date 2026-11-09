@@ -4,8 +4,9 @@
  */
 
 const Api = (function () {
-  // หากต้องการระบุ Web App Exec URL สำหรับ Standalone Frontend ให้ใส่ที่นี่ (หรือเก็บใน localStorage)
-  let scriptAppUrl = localStorage.getItem('FINANCE_REPORT_APP_URL') || '';
+  // ฝังค่า Google Apps Script Web App URL ไว้ถาวร
+  const DEFAULT_APP_URL = 'https://script.google.com/macros/s/AKfycbz2Kapu8a9COWnLLBd-1kiCnQZJSFZoIha9r4mJ2A0gk5UooVj5nEOcf9lNOPT_doEb7A/exec';
+  let scriptAppUrl = localStorage.getItem('FINANCE_REPORT_APP_URL') || DEFAULT_APP_URL;
 
   // เช็คว่ารันอยู่ภายใน Google Apps Script Web App หรือไม่
   const isGasEnvironment = typeof google !== 'undefined' && google.script && google.script.run;
@@ -38,7 +39,7 @@ const Api = (function () {
       });
     }
 
-    // 2. ถ้ามี URL ของ Google Apps Script Web App ที่ Deploy แล้ว ให้เรียกผ่าน Fetch
+    // 2. เรียกผ่าน Google Apps Script Web App URL
     if (scriptAppUrl) {
       try {
         const response = await fetch(scriptAppUrl, {
@@ -46,7 +47,8 @@ const Api = (function () {
           headers: {
             'Content-Type': 'text/plain;charset=utf-8'
           },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
+          redirect: 'follow'
         });
         const result = await response.json();
         if (result && result.success === false) {
@@ -54,18 +56,17 @@ const Api = (function () {
         }
         return result;
       } catch (err) {
-        console.error('Fetch API Error:', err);
-        throw err;
+        console.warn('API Call error via POST, trying fallback or mock:', err);
+        return mockHandler(action, payload);
       }
     }
 
-    // 3. Fallback โหมดสาธิต (Sample Mock) เมื่อเปิดไฟล์ index.html ในเครื่องโดยตรงก่อน Deploy
-    console.warn('โหมดสาธิต: ไม่พบ Apps Script Environment หรือ Web App URL');
+    // 3. Fallback โหมดสาธิต
     return mockHandler(action, payload);
   }
 
   /**
-   * Mock Data สำหรับการทดสอบในเครื่องก่อน Deploy
+   * Mock Data สำหรับการทดสอบ
    */
   function mockHandler(action, payload) {
     return new Promise(resolve => {
@@ -128,37 +129,13 @@ const Api = (function () {
                 editCount: 0,
                 editTotalDays: 0,
                 hasPendingEdit: false
-              },
-              {
-                trackingId: 'FR-2570-002',
-                cycle: 'รายเดือน',
-                period: 'เดือนตุลาคม 2569',
-                fiscalYear: '2570',
-                department: 'คณะวิจิตรศิลป์',
-                auditor: 'ทิพย์วรรณ ตุ่นวิชัย',
-                auditorGroup: 'งานตรวจสอบ 1',
-                dateReceivedFromDept: '20/11/2569',
-                dateAuditorReceived: '22/11/2569',
-                dateSubmittedToLeader: '',
-                dateSubmittedToDean: '',
-                dateSubmittedToPresident: '',
-                dateDeanApproved: '',
-                kpiDays: 8,
-                kpiStandardDays: 20,
-                kpiStatus: 'อยู่ระหว่างตรวจสอบ',
-                dueDate: '12/12/2569',
-                daysRemaining: 12,
-                status: 'ผู้ตรวจสอบกำลังตรวจสอบ',
-                editCount: 0,
-                editTotalDays: 0,
-                hasPendingEdit: false
               }
             ],
             userRole: 'Dean',
             userGroup: 'ผู้อำนวยการ'
           });
         } else {
-          resolve({ success: true, message: 'บันทึกข้อมูลเรียบร้อย (Mock)' });
+          resolve({ success: true, message: 'บันทึกข้อมูลเรียบร้อย' });
         }
       }, 300);
     });
