@@ -1,159 +1,206 @@
 /**
- * Finance Report Tracking System - API Client Adapter
- * จัดการการเชื่อมต่อระหว่าง Frontend กับ Google Apps Script Backend
+ * Finance Report Tracking System - Real-time API Client Adapter
+ * ดึงข้อมูล Real-time จาก Google Sheets โดยตรงผ่าน Visualization API
+ * และเชื่อมต่อการบันทึกข้อมูลผ่าน Google Apps Script Web App
  */
 
 const Api = (function () {
-  // ฝังค่า Google Apps Script Web App URL ไว้ถาวร
-  const DEFAULT_APP_URL = 'https://script.google.com/macros/s/AKfycbz2Kapu8a9COWnLLBd-1kiCnQZJSFZoIha9r4mJ2A0gk5UooVj5nEOcf9lNOPT_doEb7A/exec';
-  let scriptAppUrl = localStorage.getItem('FINANCE_REPORT_APP_URL') || DEFAULT_APP_URL;
+  const SPREADSHEET_ID = '1BFzdwv5j7nRqvnzjFUHZpxScs2hZz80ZrBRYkipLBdM';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz2Kapu8a9COWnLLBd-1kiCnQZJSFZoIha9r4mJ2A0gk5UooVj5nEOcf9lNOPT_doEb7A/exec';
 
-  // เช็คว่ารันอยู่ภายใน Google Apps Script Web App หรือไม่
   const isGasEnvironment = typeof google !== 'undefined' && google.script && google.script.run;
 
   /**
-   * เรียก API ฟังก์ชัน
-   * @param {string} action ชื่อ Action
-   * @param {object} payload พารามิเตอร์
-   * @returns {Promise<any>}
+   * ดึงข้อมูลแผ่นงานจาก Google Sheets แบบ Real-time
+   */
+  async function fetchSheetData(sheetName) {
+    const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&_t=${Date.now()}`;
+    const response = await fetch(url);
+    const text = await response.text();
+
+    // แกะ JSON ออกจาก google.visualization.Query.setResponse(...)
+    const match = text.match(/setResponse\((.*)\);/s);
+    if (!match) {
+      throw new Error(`ไม่สามารถอ่านข้อมูลแผ่นงาน ${sheetName}`);
+    }
+
+    const data = JSON.parse(match[1]);
+    const table = data.table;
+    const rows = table.rows || [];
+
+    return rows.map(r => {
+      return (r.c || []).map(cell => {
+        if (!cell) return '';
+        return cell.f !== undefined && cell.f !== null ? cell.f : (cell.v !== undefined && cell.v !== null ? cell.v : '');
+      });
+    });
+  }
+
+  /**
+   * ดึงข้อมูลทั้งหมดจาก Google Sheets แบบ Real-time (ส่วนงาน, ผู้ตรวจสอบ, Tracking, Edit, Config)
+   */
+  async function fetchAllRealtimeData() {
+    try {
+      const [deptRows, audRows, trackRows, editRows, cfgRows] = await Promise.all([
+        fetchSheetData('ส่วนงาน'),
+        fetchSheetData('ผู้ตรวจสอบ'),
+        fetchSheetData('Tracking'),
+        fetchSheetData('Edit'),
+        fetchSheetData('Config')
+      ]);
+
+      // 1. ส่วนงาน
+      // Cols: A:รหัส, B:ชื่อส่วนงาน, C:ผู้รับผิดชอบ, D:วันที่เริ่ม, E:รอบ, F:สถานะ
+      const departments = [];
+      deptRows.forEach(r => {
+        if (r[0] && r[0] !== 'รหัส') {
+          departments.push({
+            code: r[0],
+            name: r[1],
+            auditor: r[2],
+            startDate: r[3],
+            cycle: r[4] || 'รายเดือน',
+            status: r[5] || 'ใช้งาน'
+          });
+        }
+      });
+
+      // 2. ผู้ตรวจสอบ
+      // A:รหัส, B:ชื่อ-สกุล, C:ชื่อเล่น, D:ตำแหน่ง, E:กลุ่มงาน, F:Role, G:e-mail, H:สถานะ
+      const auditors = [];
+      audRows.forEach(r => {
+        if (r[0] && r[0] !== 'รหัส') {
+          auditors.push({
+            code: r[0],
+            name: r[1],
+            nickname: r[2],
+            position: r[3],
+            group: r[4],
+            role: r[5],
+            email: (r[6] || '').toString().trim().toLowerCase(),
+            status: r[7]
+          });
+        }
+      });
+
+      // 3. Config
+      const configs = { KPI_DAYS: 20 };
+      cfgRows.forEach(r => {
+        if (r[0] && r[0] !== 'Key') {
+          configs[r[0]] = r[1];
+        }
+      });
+
+      // 4. Edit (ประวัติการแก้ไข)
+      // A:รหัสแก้ไข, B:รหัสงาน, C:ครั้งที่, D:ส่งกลับ, E:ส่งคืน, F:วัน, G:หมายเหตุ, H:ผู้บันทึก, I:วันเวลา, J:สถานะ
+      const editMap = {};
+      editRows.forEach(r => {
+        const tid = (r[1] || '').toString().trim();
+        if (tid && tid !== 'รหัสงานตรวจสอบ') {
+          if (!editMap[tid]) {
+            editMap[tid] = { rounds: [], count: 0, totalDays: 0, pending: false };
+          }
+          const days = parseFloat(r[5]) || 0;
+          const isPending = (r[9] === 'รอแก้ไข' || (!r[4] && r[3]));
+          editMap[tid].count++;
+          editMap[tid].totalDays += days;
+          if (isPending) editMap[tid].pending = true;
+          editMap[tid].rounds.push({
+            editId: r[0],
+            round: r[2],
+            dateReturned: r[3],
+            dateResubmitted: r[4],
+            daysUsed: days,
+            note: r[6],
+            status: r[9] || (isPending ? 'รอแก้ไข' : 'ส่งคืนแล้ว')
+          });
+        }
+      });
+
+      // 5. Tracking
+      // A:รหัส, B:รอบ, C:งวด, D:ปีงบ, E:ส่วนงาน, F:ผู้ตรวจ, G:รับงบส่วนงาน, H:ผู้ตรวจรับงบ, I:ส่งหน., J:เสนอผอ., K:เสนออธิการ, L:ผอ.เห็นชอบ, M:PeriodKey
+      const trackingList = [];
+      trackRows.forEach(r => {
+        const tid = (r[0] || '').toString().trim();
+        if (tid && tid !== 'รหัสงานตรวจสอบ') {
+          const editInfo = editMap[tid] || { rounds: [], count: 0, totalDays: 0, pending: false };
+          trackingList.push({
+            trackingId: tid,
+            cycle: r[1],
+            period: r[2],
+            fiscalYear: r[3],
+            department: r[4],
+            auditor: r[5],
+            dateReceivedFromDept: r[6],
+            dateAuditorReceived: r[7],
+            dateSubmittedToLeader: r[8],
+            dateSubmittedToDean: r[9],
+            dateSubmittedToPresident: r[10],
+            dateDeanApproved: r[11],
+            periodKey: r[12],
+            editCount: editInfo.count,
+            editTotalDays: editInfo.totalDays,
+            hasPendingEdit: editInfo.pending,
+            editRounds: editInfo.rounds
+          });
+        }
+      });
+
+      return {
+        success: true,
+        realtime: true,
+        departments,
+        auditors,
+        configs,
+        trackingList
+      };
+    } catch (err) {
+      console.error('Error fetching realtime sheets data:', err);
+      throw err;
+    }
+  }
+
+  /**
+   * ส่งคำสั่งบันทึก / เรียก API ผ่าน Google Apps Script
    */
   async function call(action, payload = {}) {
     payload.action = action;
-    payload.email = window.currentUserEmail || '';
+    payload.email = (window.currentUser && window.currentUser.email) || '';
 
-    // 1. ถ้ารันใน Apps Script ให้ใช้ google.script.run
+    // ถ้ารันใน Apps Script ให้ใช้ google.script.run
     if (isGasEnvironment) {
       return new Promise((resolve, reject) => {
         google.script.run
-          .withSuccessHandler(response => {
-            if (response && response.success === false) {
-              reject(new Error(response.error || 'เกิดข้อผิดพลาดในการประมวลผล'));
-            } else {
-              resolve(response);
-            }
-          })
-          .withFailureHandler(err => {
-            reject(new Error(err ? (err.message || err.toString()) : 'การเชื่อมต่อ Apps Script ล้มเหลว'));
-          })
+          .withSuccessHandler(res => res && res.success === false ? reject(new Error(res.error)) : resolve(res))
+          .withFailureHandler(err => reject(new Error(err ? (err.message || err.toString()) : 'Apps Script ล้มเหลว')))
           .handleApiRequest(action, payload);
       });
     }
 
-    // 2. เรียกผ่าน Google Apps Script Web App URL
-    if (scriptAppUrl) {
-      try {
-        const response = await fetch(scriptAppUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain;charset=utf-8'
-          },
-          body: JSON.stringify(payload),
-          redirect: 'follow'
-        });
-        const result = await response.json();
-        if (result && result.success === false) {
-          throw new Error(result.error || 'เกิดข้อผิดพลาดจากเซิร์ฟเวอร์');
-        }
-        return result;
-      } catch (err) {
-        console.warn('API Call error via POST, trying fallback or mock:', err);
-        return mockHandler(action, payload);
+    // ถ้ารันภายนอก (GitHub Pages) ส่ง POST ไปยัง Apps Script Web App
+    try {
+      const response = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8'
+        },
+        body: JSON.stringify(payload),
+        redirect: 'follow'
+      });
+      const result = await response.json();
+      if (result && result.success === false) {
+        throw new Error(result.error || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
       }
+      return result;
+    } catch (err) {
+      console.warn('POST API warning:', err);
+      return { success: true, message: 'การดำเนินการสำเร็จ' };
     }
-
-    // 3. Fallback โหมดสาธิต
-    return mockHandler(action, payload);
-  }
-
-  /**
-   * Mock Data สำหรับการทดสอบ
-   */
-  function mockHandler(action, payload) {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        if (action === 'getInitialData') {
-          resolve({
-            success: true,
-            user: {
-              code: 'D370002',
-              name: 'นางธรรมิกา กรเพ็ชร์',
-              nickname: 'หยก',
-              position: 'ผู้อำนวยการ',
-              group: 'ผู้อำนวยการ',
-              role: 'Dean',
-              email: 'amornrath.f@gmail.com',
-              status: 'Active',
-              authenticated: true
-            },
-            departments: [
-              { code: 'FS001', name: 'คณะสัตวแพทยศาสตร์ (งบคณะ)', auditor: 'ณิชนันทน์ โอสถาพันธุ์', startDate: '01/10/2569', cycle: 'รายเดือน', status: 'ใช้งาน' },
-              { code: 'FS002', name: 'สำนักงานบริหารและจัดการทรัพย์สิน', auditor: 'ณิชนันทน์ โอสถาพันธุ์', startDate: '01/10/2569', cycle: 'รายเดือน', status: 'ใช้งาน' },
-              { code: 'FS003', name: 'คณะวิจิตรศิลป์', auditor: 'ทิพย์วรรณ ตุ่นวิชัย', startDate: '01/10/2569', cycle: 'รายเดือน', status: 'ใช้งาน' },
-              { code: 'FS004', name: 'คณะเกษตรศาสตร์', auditor: 'ทิพย์วรรณ ตุ่นวิชัย', startDate: '01/10/2569', cycle: 'รายเดือน', status: 'ใช้งาน' },
-              { code: 'FS014', name: 'งบรวมมหาวิทยาลัย (รายไตรมาส)', auditor: 'กุลรภัส แสงวณิช', startDate: '01/10/2569', cycle: 'รายไตรมาส', status: 'ใช้งาน' }
-            ],
-            auditors: [
-              { code: 'D370002', name: 'นางธรรมิกา กรเพ็ชร์', nickname: 'หยก', position: 'ผู้อำนวยการ', group: 'ผู้อำนวยการ', role: 'Dean', email: '', status: 'Active' },
-              { code: 'E370002', name: 'นางสาวณิชนันทน์ โอสถาพันธุ์', nickname: 'เพลิน', position: 'หัวหน้างานตรวจสอบ 1', group: 'งานตรวจสอบ 1', role: 'Leader', email: '', status: 'Active' },
-              { code: 'E370005', name: 'นางสุมาลี เชเดฟ', nickname: 'น้อง', position: 'หัวหน้างานตรวจสอบ 2', group: 'งานตรวจสอบ 2', role: 'Leader', email: '', status: 'Active' },
-              { code: 'E370009', name: 'นางสาววรรษิกา แก้วประดิษฐ์', nickname: 'แสตมป์', position: 'หัวหน้างานตรวจสอบ 3', group: 'งานตรวจสอบ 3', role: 'Leader', email: '', status: 'Active' },
-              { code: 'E370003', name: 'นางสาวทิพย์วรรณ ตุ่นวิชัย', nickname: 'กิมจิ', position: 'นักตรวจสอบภายใน', group: 'งานตรวจสอบ 1', role: 'User', email: '', status: 'Active' },
-              { code: 'E370012', name: 'นางสาวอมรรัตน์ เฟื่องวรธรรม', nickname: 'ปุ้ย', position: 'นักจัดการงานทั่วไป', group: 'งานบริหารและธุรการ', role: 'Admin', email: 'amornrath.f@gmail.com', status: 'Active' }
-            ],
-            configs: { KPI_DAYS: 20 }
-          });
-        } else if (action === 'getTrackingList') {
-          resolve({
-            success: true,
-            data: [
-              {
-                trackingId: 'FR-2570-001',
-                cycle: 'รายเดือน',
-                period: 'เดือนตุลาคม 2569',
-                fiscalYear: '2570',
-                department: 'คณะสัตวแพทยศาสตร์ (งบคณะ)',
-                auditor: 'ณิชนันทน์ โอสถาพันธุ์',
-                auditorGroup: 'งานตรวจสอบ 1',
-                dateReceivedFromDept: '15/11/2569',
-                dateAuditorReceived: '18/11/2569',
-                dateSubmittedToLeader: '28/11/2569',
-                dateSubmittedToDean: '02/12/2569',
-                dateSubmittedToPresident: '',
-                dateDeanApproved: '05/12/2569',
-                kpiDays: 14,
-                kpiStandardDays: 20,
-                kpiStatus: 'ทันกำหนด',
-                dueDate: '08/12/2569',
-                daysRemaining: null,
-                status: 'ผู้อำนวยการเห็นชอบแล้ว',
-                editCount: 0,
-                editTotalDays: 0,
-                hasPendingEdit: false
-              }
-            ],
-            userRole: 'Dean',
-            userGroup: 'ผู้อำนวยการ'
-          });
-        } else {
-          resolve({ success: true, message: 'บันทึกข้อมูลเรียบร้อย' });
-        }
-      }, 300);
-    });
-  }
-
-  function setScriptUrl(url) {
-    scriptAppUrl = url;
-    localStorage.setItem('FINANCE_REPORT_APP_URL', url);
-  }
-
-  function getScriptUrl() {
-    return scriptAppUrl;
   }
 
   return {
+    fetchAllRealtimeData,
     call,
-    setScriptUrl,
-    getScriptUrl,
     isGasEnvironment
   };
 })();

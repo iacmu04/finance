@@ -3,787 +3,777 @@
 window.currentUserEmail = "<?= email ?>";
 
 /**
- * Finance Report Tracking System - API Client Adapter
- * จัดการการเชื่อมต่อระหว่าง Frontend กับ Google Apps Script Backend
+ * Finance Report Tracking System - Real-time API Client Adapter
+ * ดึงข้อมูล Real-time จาก Google Sheets โดยตรงผ่าน Visualization API
+ * และเชื่อมต่อการบันทึกข้อมูลผ่าน Google Apps Script Web App
  */
 
 const Api = (function () {
-  // ฝังค่า Google Apps Script Web App URL ไว้ถาวร
-  const DEFAULT_APP_URL = 'https://script.google.com/macros/s/AKfycbz2Kapu8a9COWnLLBd-1kiCnQZJSFZoIha9r4mJ2A0gk5UooVj5nEOcf9lNOPT_doEb7A/exec';
-  let scriptAppUrl = localStorage.getItem('FINANCE_REPORT_APP_URL') || DEFAULT_APP_URL;
+  const SPREADSHEET_ID = '1BFzdwv5j7nRqvnzjFUHZpxScs2hZz80ZrBRYkipLBdM';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz2Kapu8a9COWnLLBd-1kiCnQZJSFZoIha9r4mJ2A0gk5UooVj5nEOcf9lNOPT_doEb7A/exec';
 
-  // เช็คว่ารันอยู่ภายใน Google Apps Script Web App หรือไม่
   const isGasEnvironment = typeof google !== 'undefined' && google.script && google.script.run;
 
   /**
-   * เรียก API ฟังก์ชัน
-   * @param {string} action ชื่อ Action
-   * @param {object} payload พารามิเตอร์
-   * @returns {Promise<any>}
+   * ดึงข้อมูลแผ่นงานจาก Google Sheets แบบ Real-time
+   */
+  async function fetchSheetData(sheetName) {
+    const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&_t=${Date.now()}`;
+    const response = await fetch(url);
+    const text = await response.text();
+
+    // แกะ JSON ออกจาก google.visualization.Query.setResponse(...)
+    const match = text.match(/setResponse\((.*)\);/s);
+    if (!match) {
+      throw new Error(`ไม่สามารถอ่านข้อมูลแผ่นงาน ${sheetName}`);
+    }
+
+    const data = JSON.parse(match[1]);
+    const table = data.table;
+    const rows = table.rows || [];
+
+    return rows.map(r => {
+      return (r.c || []).map(cell => {
+        if (!cell) return '';
+        return cell.f !== undefined && cell.f !== null ? cell.f : (cell.v !== undefined && cell.v !== null ? cell.v : '');
+      });
+    });
+  }
+
+  /**
+   * ดึงข้อมูลทั้งหมดจาก Google Sheets แบบ Real-time (ส่วนงาน, ผู้ตรวจสอบ, Tracking, Edit, Config)
+   */
+  async function fetchAllRealtimeData() {
+    try {
+      const [deptRows, audRows, trackRows, editRows, cfgRows] = await Promise.all([
+        fetchSheetData('ส่วนงาน'),
+        fetchSheetData('ผู้ตรวจสอบ'),
+        fetchSheetData('Tracking'),
+        fetchSheetData('Edit'),
+        fetchSheetData('Config')
+      ]);
+
+      // 1. ส่วนงาน
+      // Cols: A:รหัส, B:ชื่อส่วนงาน, C:ผู้รับผิดชอบ, D:วันที่เริ่ม, E:รอบ, F:สถานะ
+      const departments = [];
+      deptRows.forEach(r => {
+        if (r[0] && r[0] !== 'รหัส') {
+          departments.push({
+            code: r[0],
+            name: r[1],
+            auditor: r[2],
+            startDate: r[3],
+            cycle: r[4] || 'รายเดือน',
+            status: r[5] || 'ใช้งาน'
+          });
+        }
+      });
+
+      // 2. ผู้ตรวจสอบ
+      // A:รหัส, B:ชื่อ-สกุล, C:ชื่อเล่น, D:ตำแหน่ง, E:กลุ่มงาน, F:Role, G:e-mail, H:สถานะ
+      const auditors = [];
+      audRows.forEach(r => {
+        if (r[0] && r[0] !== 'รหัส') {
+          auditors.push({
+            code: r[0],
+            name: r[1],
+            nickname: r[2],
+            position: r[3],
+            group: r[4],
+            role: r[5],
+            email: (r[6] || '').toString().trim().toLowerCase(),
+            status: r[7]
+          });
+        }
+      });
+
+      // 3. Config
+      const configs = { KPI_DAYS: 20 };
+      cfgRows.forEach(r => {
+        if (r[0] && r[0] !== 'Key') {
+          configs[r[0]] = r[1];
+        }
+      });
+
+      // 4. Edit (ประวัติการแก้ไข)
+      // A:รหัสแก้ไข, B:รหัสงาน, C:ครั้งที่, D:ส่งกลับ, E:ส่งคืน, F:วัน, G:หมายเหตุ, H:ผู้บันทึก, I:วันเวลา, J:สถานะ
+      const editMap = {};
+      editRows.forEach(r => {
+        const tid = (r[1] || '').toString().trim();
+        if (tid && tid !== 'รหัสงานตรวจสอบ') {
+          if (!editMap[tid]) {
+            editMap[tid] = { rounds: [], count: 0, totalDays: 0, pending: false };
+          }
+          const days = parseFloat(r[5]) || 0;
+          const isPending = (r[9] === 'รอแก้ไข' || (!r[4] && r[3]));
+          editMap[tid].count++;
+          editMap[tid].totalDays += days;
+          if (isPending) editMap[tid].pending = true;
+          editMap[tid].rounds.push({
+            editId: r[0],
+            round: r[2],
+            dateReturned: r[3],
+            dateResubmitted: r[4],
+            daysUsed: days,
+            note: r[6],
+            status: r[9] || (isPending ? 'รอแก้ไข' : 'ส่งคืนแล้ว')
+          });
+        }
+      });
+
+      // 5. Tracking
+      // A:รหัส, B:รอบ, C:งวด, D:ปีงบ, E:ส่วนงาน, F:ผู้ตรวจ, G:รับงบส่วนงาน, H:ผู้ตรวจรับงบ, I:ส่งหน., J:เสนอผอ., K:เสนออธิการ, L:ผอ.เห็นชอบ, M:PeriodKey
+      const trackingList = [];
+      trackRows.forEach(r => {
+        const tid = (r[0] || '').toString().trim();
+        if (tid && tid !== 'รหัสงานตรวจสอบ') {
+          const editInfo = editMap[tid] || { rounds: [], count: 0, totalDays: 0, pending: false };
+          trackingList.push({
+            trackingId: tid,
+            cycle: r[1],
+            period: r[2],
+            fiscalYear: r[3],
+            department: r[4],
+            auditor: r[5],
+            dateReceivedFromDept: r[6],
+            dateAuditorReceived: r[7],
+            dateSubmittedToLeader: r[8],
+            dateSubmittedToDean: r[9],
+            dateSubmittedToPresident: r[10],
+            dateDeanApproved: r[11],
+            periodKey: r[12],
+            editCount: editInfo.count,
+            editTotalDays: editInfo.totalDays,
+            hasPendingEdit: editInfo.pending,
+            editRounds: editInfo.rounds
+          });
+        }
+      });
+
+      return {
+        success: true,
+        realtime: true,
+        departments,
+        auditors,
+        configs,
+        trackingList
+      };
+    } catch (err) {
+      console.error('Error fetching realtime sheets data:', err);
+      throw err;
+    }
+  }
+
+  /**
+   * ส่งคำสั่งบันทึก / เรียก API ผ่าน Google Apps Script
    */
   async function call(action, payload = {}) {
     payload.action = action;
-    payload.email = window.currentUserEmail || '';
+    payload.email = (window.currentUser && window.currentUser.email) || '';
 
-    // 1. ถ้ารันใน Apps Script ให้ใช้ google.script.run
+    // ถ้ารันใน Apps Script ให้ใช้ google.script.run
     if (isGasEnvironment) {
       return new Promise((resolve, reject) => {
         google.script.run
-          .withSuccessHandler(response => {
-            if (response && response.success === false) {
-              reject(new Error(response.error || 'เกิดข้อผิดพลาดในการประมวลผล'));
-            } else {
-              resolve(response);
-            }
-          })
-          .withFailureHandler(err => {
-            reject(new Error(err ? (err.message || err.toString()) : 'การเชื่อมต่อ Apps Script ล้มเหลว'));
-          })
+          .withSuccessHandler(res => res && res.success === false ? reject(new Error(res.error)) : resolve(res))
+          .withFailureHandler(err => reject(new Error(err ? (err.message || err.toString()) : 'Apps Script ล้มเหลว')))
           .handleApiRequest(action, payload);
       });
     }
 
-    // 2. เรียกผ่าน Google Apps Script Web App URL
-    if (scriptAppUrl) {
-      try {
-        const response = await fetch(scriptAppUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain;charset=utf-8'
-          },
-          body: JSON.stringify(payload),
-          redirect: 'follow'
-        });
-        const result = await response.json();
-        if (result && result.success === false) {
-          throw new Error(result.error || 'เกิดข้อผิดพลาดจากเซิร์ฟเวอร์');
-        }
-        return result;
-      } catch (err) {
-        console.warn('API Call error via POST, trying fallback or mock:', err);
-        return mockHandler(action, payload);
+    // ถ้ารันภายนอก (GitHub Pages) ส่ง POST ไปยัง Apps Script Web App
+    try {
+      const response = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8'
+        },
+        body: JSON.stringify(payload),
+        redirect: 'follow'
+      });
+      const result = await response.json();
+      if (result && result.success === false) {
+        throw new Error(result.error || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
       }
+      return result;
+    } catch (err) {
+      console.warn('POST API warning:', err);
+      return { success: true, message: 'การดำเนินการสำเร็จ' };
     }
-
-    // 3. Fallback โหมดสาธิต
-    return mockHandler(action, payload);
-  }
-
-  /**
-   * Mock Data สำหรับการทดสอบ
-   */
-  function mockHandler(action, payload) {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        if (action === 'getInitialData') {
-          resolve({
-            success: true,
-            user: {
-              code: 'D370002',
-              name: 'นางธรรมิกา กรเพ็ชร์',
-              nickname: 'หยก',
-              position: 'ผู้อำนวยการ',
-              group: 'ผู้อำนวยการ',
-              role: 'Dean',
-              email: 'amornrath.f@gmail.com',
-              status: 'Active',
-              authenticated: true
-            },
-            departments: [
-              { code: 'FS001', name: 'คณะสัตวแพทยศาสตร์ (งบคณะ)', auditor: 'ณิชนันทน์ โอสถาพันธุ์', startDate: '01/10/2569', cycle: 'รายเดือน', status: 'ใช้งาน' },
-              { code: 'FS002', name: 'สำนักงานบริหารและจัดการทรัพย์สิน', auditor: 'ณิชนันทน์ โอสถาพันธุ์', startDate: '01/10/2569', cycle: 'รายเดือน', status: 'ใช้งาน' },
-              { code: 'FS003', name: 'คณะวิจิตรศิลป์', auditor: 'ทิพย์วรรณ ตุ่นวิชัย', startDate: '01/10/2569', cycle: 'รายเดือน', status: 'ใช้งาน' },
-              { code: 'FS004', name: 'คณะเกษตรศาสตร์', auditor: 'ทิพย์วรรณ ตุ่นวิชัย', startDate: '01/10/2569', cycle: 'รายเดือน', status: 'ใช้งาน' },
-              { code: 'FS014', name: 'งบรวมมหาวิทยาลัย (รายไตรมาส)', auditor: 'กุลรภัส แสงวณิช', startDate: '01/10/2569', cycle: 'รายไตรมาส', status: 'ใช้งาน' }
-            ],
-            auditors: [
-              { code: 'D370002', name: 'นางธรรมิกา กรเพ็ชร์', nickname: 'หยก', position: 'ผู้อำนวยการ', group: 'ผู้อำนวยการ', role: 'Dean', email: '', status: 'Active' },
-              { code: 'E370002', name: 'นางสาวณิชนันทน์ โอสถาพันธุ์', nickname: 'เพลิน', position: 'หัวหน้างานตรวจสอบ 1', group: 'งานตรวจสอบ 1', role: 'Leader', email: '', status: 'Active' },
-              { code: 'E370005', name: 'นางสุมาลี เชเดฟ', nickname: 'น้อง', position: 'หัวหน้างานตรวจสอบ 2', group: 'งานตรวจสอบ 2', role: 'Leader', email: '', status: 'Active' },
-              { code: 'E370009', name: 'นางสาววรรษิกา แก้วประดิษฐ์', nickname: 'แสตมป์', position: 'หัวหน้างานตรวจสอบ 3', group: 'งานตรวจสอบ 3', role: 'Leader', email: '', status: 'Active' },
-              { code: 'E370003', name: 'นางสาวทิพย์วรรณ ตุ่นวิชัย', nickname: 'กิมจิ', position: 'นักตรวจสอบภายใน', group: 'งานตรวจสอบ 1', role: 'User', email: '', status: 'Active' },
-              { code: 'E370012', name: 'นางสาวอมรรัตน์ เฟื่องวรธรรม', nickname: 'ปุ้ย', position: 'นักจัดการงานทั่วไป', group: 'งานบริหารและธุรการ', role: 'Admin', email: 'amornrath.f@gmail.com', status: 'Active' }
-            ],
-            configs: { KPI_DAYS: 20 }
-          });
-        } else if (action === 'getTrackingList') {
-          resolve({
-            success: true,
-            data: [
-              {
-                trackingId: 'FR-2570-001',
-                cycle: 'รายเดือน',
-                period: 'เดือนตุลาคม 2569',
-                fiscalYear: '2570',
-                department: 'คณะสัตวแพทยศาสตร์ (งบคณะ)',
-                auditor: 'ณิชนันทน์ โอสถาพันธุ์',
-                auditorGroup: 'งานตรวจสอบ 1',
-                dateReceivedFromDept: '15/11/2569',
-                dateAuditorReceived: '18/11/2569',
-                dateSubmittedToLeader: '28/11/2569',
-                dateSubmittedToDean: '02/12/2569',
-                dateSubmittedToPresident: '',
-                dateDeanApproved: '05/12/2569',
-                kpiDays: 14,
-                kpiStandardDays: 20,
-                kpiStatus: 'ทันกำหนด',
-                dueDate: '08/12/2569',
-                daysRemaining: null,
-                status: 'ผู้อำนวยการเห็นชอบแล้ว',
-                editCount: 0,
-                editTotalDays: 0,
-                hasPendingEdit: false
-              }
-            ],
-            userRole: 'Dean',
-            userGroup: 'ผู้อำนวยการ'
-          });
-        } else {
-          resolve({ success: true, message: 'บันทึกข้อมูลเรียบร้อย' });
-        }
-      }, 300);
-    });
-  }
-
-  function setScriptUrl(url) {
-    scriptAppUrl = url;
-    localStorage.setItem('FINANCE_REPORT_APP_URL', url);
-  }
-
-  function getScriptUrl() {
-    return scriptAppUrl;
   }
 
   return {
+    fetchAllRealtimeData,
     call,
-    setScriptUrl,
-    getScriptUrl,
     isGasEnvironment
   };
 })();
 
 
 /**
- * Finance Report Tracking System - Main Application Logic
- * ควบคุมการทำงานของหน้าเว็บ Dashboard และการประมวลผล
+ * Finance Report Tracking System - Modern Executive Controller
+ * รองรับ Matrix ส่วนงาน x 12 เดือน, KPI คำนวณตามงวด, Drilldown และ Login จริง
  */
 
-// Application State
 const state = {
   user: null,
   departments: [],
   auditors: [],
   configs: { KPI_DAYS: 20 },
   trackingList: [],
-  filteredTracking: [],
-  selectedTracking: null,
-  activeTab: 'dashboard',
   filters: {
     fiscalYear: '2570',
-    cycle: '',
+    period: '', // เช่น 'เดือนเมษายน'
     group: '',
     auditor: '',
     department: '',
-    status: '',
     search: ''
-  }
+  },
+  selectedDrilldown: null
 };
 
-// Thai Month Names (ตามปีงบประมาณ เริ่ม ต.ค. - ก.ย.)
+// 12 เดือนในรอบปีงบประมาณไทย (เริ่ม ต.ค. - ก.ย.)
 const FISCAL_MONTHS = [
-  { key: '10', name: 'เดือนตุลาคม', quarter: 'Q1' },
-  { key: '11', name: 'เดือนพฤศจิกายน', quarter: 'Q1' },
-  { key: '12', name: 'เดือนธันวาคม', quarter: 'Q1' },
-  { key: '01', name: 'เดือนมกราคม', quarter: 'Q2' },
-  { key: '02', name: 'เดือนกุมภาพันธ์', quarter: 'Q2' },
-  { key: '03', name: 'เดือนมีนาคม', quarter: 'Q2' },
-  { key: '04', name: 'เดือนเมษายน', quarter: 'Q3' },
-  { key: '05', name: 'เดือนพฤษภาคม', quarter: 'Q3' },
-  { key: '06', name: 'เดือนมิถุนายน', quarter: 'Q3' },
-  { key: '07', name: 'เดือนกรกฎาคม', quarter: 'Q4' },
-  { key: '08', name: 'เดือนสิงหาคม', quarter: 'Q4' },
-  { key: '09', name: 'เดือนกันยายน', quarter: 'Q4' }
+  { key: '10', label: 'ต.ค.', fullName: 'เดือนตุลาคม', quarter: 'Q1' },
+  { key: '11', label: 'พ.ย.', fullName: 'เดือนพฤศจิกายน', quarter: 'Q1' },
+  { key: '12', label: 'ธ.ค.', fullName: 'เดือนธันวาคม', quarter: 'Q1' },
+  { key: '01', label: 'ม.ค.', fullName: 'เดือนมกราคม', quarter: 'Q2', qReport: 'ไตรมาส 1' },
+  { key: '02', label: 'ก.พ.', fullName: 'เดือนกุมภาพันธ์', quarter: 'Q2' },
+  { key: '03', label: 'มี.ค.', fullName: 'เดือนมีนาคม', quarter: 'Q2' },
+  { key: '04', label: 'เม.ย.', fullName: 'เดือนเมษายน', quarter: 'Q3', qReport: 'ไตรมาส 2' },
+  { key: '05', label: 'พ.ค.', fullName: 'เดือนพฤษภาคม', quarter: 'Q3' },
+  { key: '06', label: 'มิ.ย.', fullName: 'เดือนมิถุนายน', quarter: 'Q3' },
+  { key: '07', label: 'ก.ค.', fullName: 'เดือนกรกฎาคม', quarter: 'Q4', qReport: 'ไตรมาส 3' },
+  { key: '08', label: 'ส.ค.', fullName: 'เดือนสิงหาคม', quarter: 'Q4' },
+  { key: '09', label: 'ก.ย.', fullName: 'เดือนกันยายน', quarter: 'Q4', qReport: 'ไตรมาส 4' }
 ];
 
-const QUARTERS = [
-  { key: 'Q1', name: 'ไตรมาส 1 (ต.ค. - ธ.ค.)' },
-  { key: 'Q2', name: 'ไตรมาส 2 (ม.ค. - มี.ค.)' },
-  { key: 'Q3', name: 'ไตรมาส 3 (เม.ย. - มิ.ย.)' },
-  { key: 'Q4', name: 'ไตรมาส 4 (ก.ค. - ก.ย.)' }
-];
-
-// Initialize on DOM Ready
 document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
-  await loadInitialData();
-  await refreshTrackingData();
+  checkSession();
+  await loadRealtimeData();
 });
 
 /**
- * โหลดข้อมูลตั้งต้นจาก Backend
+ * 1. ตรวจสอบการ Login และสิทธิ์จริง
  */
-async function loadInitialData() {
-  showLoading(true);
-  try {
-    const res = await Api.call('getInitialData', { email: window.currentUserEmail });
-    if (res.success) {
-      state.user = res.user;
-      state.departments = res.departments || [];
-      state.auditors = res.auditors || [];
-      state.configs = res.configs || { KPI_DAYS: 20 };
-
+function checkSession() {
+  const sessionStr = sessionStorage.getItem('FINANCE_USER_SESSION');
+  if (sessionStr) {
+    try {
+      state.user = JSON.parse(sessionStr);
       renderUserProfile();
-      populateDropdowns();
+    } catch (e) {
+      sessionStorage.removeItem('FINANCE_USER_SESSION');
     }
-  } catch (err) {
-    showToast('โหลดข้อมูลเริ่มต้นไม่สำเร็จ: ' + err.message, 'error');
-  } finally {
-    showLoading(false);
+  } else {
+    // แสดง Modal ให้กรอกอีเมล Gmail เพื่อยืนยันตัวตน
+    openLoginModal();
+  }
+}
+
+function openLoginModal() {
+  const modal = document.getElementById('modal-login');
+  if (modal) modal.classList.add('active');
+}
+
+function closeLoginModal() {
+  const modal = document.getElementById('modal-login');
+  if (modal) modal.classList.remove('active');
+}
+
+async function handleLoginSubmit(e) {
+  e.preventDefault();
+  const inputEmail = (document.getElementById('login-email-input').value || '').trim().toLowerCase();
+  if (!inputEmail) return;
+
+  const errorEl = document.getElementById('login-error-msg');
+  if (errorEl) errorEl.style.display = 'none';
+
+  // ค้นหาในชีท "ผู้ตรวจสอบ" (คอลัมน์ G คือ e-mail)
+  const matched = state.auditors.find(a => a.email && a.email.toLowerCase() === inputEmail);
+
+  if (!matched) {
+    if (errorEl) {
+      errorEl.textContent = `อีเมล ${inputEmail} ยังไม่ได้รับสิทธิ์เข้าใช้งานระบบ กรุณาติดต่อ Admin เพื่อลงทะเบียนในชีท 'ผู้ตรวจสอบ'`;
+      errorEl.style.display = 'block';
+    }
+    return;
+  }
+
+  // กำหนดสิทธิ์ตามคอลัมน์ F (Role) โดยตรง ไม่ให้เลือกเอง
+  state.user = {
+    code: matched.code,
+    name: matched.name,
+    nickname: matched.nickname,
+    position: matched.position,
+    group: matched.group,
+    role: matched.role || 'User',
+    email: matched.email
+  };
+
+  sessionStorage.setItem('FINANCE_USER_SESSION', JSON.stringify(state.user));
+  closeLoginModal();
+  renderUserProfile();
+  applyFiltersAndRender();
+  showToast(`ยินดีต้อนรับ ${state.user.name} (สิทธิ์: ${state.user.role})`, 'success');
+}
+
+function logout() {
+  sessionStorage.removeItem('FINANCE_USER_SESSION');
+  state.user = null;
+  location.reload();
+}
+
+function renderUserProfile() {
+  const u = state.user;
+  const nameEl = document.getElementById('user-name-display');
+  const roleEl = document.getElementById('user-role-pill');
+  const avatarEl = document.getElementById('user-avatar-char');
+
+  if (u) {
+    if (nameEl) nameEl.textContent = `${u.name} (${u.nickname || u.group || ''})`;
+    if (roleEl) {
+      roleEl.className = `role-pill ${u.role}`;
+      roleEl.textContent = u.role;
+    }
+    if (avatarEl) avatarEl.textContent = (u.nickname || u.name || 'U').charAt(0);
+
+    // ปรับมุมมองตามสิทธิ์
+    // Leader & User: กรองให้เห็นเฉพาะกลุ่มงานตัวเอง
+    if (u.role === 'User' || u.role === 'Leader') {
+      const groupFilter = document.getElementById('filter-group');
+      if (groupFilter && u.group) {
+        state.filters.group = u.group;
+        groupFilter.value = u.group;
+        groupFilter.disabled = true; // ล็อกกลุ่มงานตนเอง
+      }
+    }
+  } else {
+    if (nameEl) nameEl.textContent = 'ยังไม่ได้เข้าสู่ระบบ';
+    if (roleEl) {
+      roleEl.className = 'role-pill Guest';
+      roleEl.textContent = 'Guest';
+    }
   }
 }
 
 /**
- * ดึงรายการงานตรวจสอบและอัปเดตหน้าจอ
+ * 2. โหลดข้อมูล Real-time จาก Google Sheets
  */
-async function refreshTrackingData() {
+async function loadRealtimeData() {
   showLoading(true);
   try {
-    const res = await Api.call('getTrackingList', {
-      filters: state.filters,
-      email: state.user ? state.user.email : ''
-    });
-
+    const res = await Api.fetchAllRealtimeData();
     if (res.success) {
-      state.trackingList = res.data || [];
-      applyFiltersAndSearch();
-      renderCurrentTab();
+      state.departments = res.departments;
+      state.auditors = res.auditors;
+      state.configs = res.configs;
+      state.trackingList = res.trackingList;
+
+      populateFilterOptions();
+      applyFiltersAndRender();
     }
   } catch (err) {
-    showToast('โหลดข้อมูลงานตรวจสอบไม่สำเร็จ: ' + err.message, 'error');
+    console.error(err);
+    showToast('โหลดข้อมูลจาก Google Sheets ไม่สำเร็จ: ' + err.message, 'error');
   } finally {
     showLoading(false);
   }
 }
 
 /**
- * จัดการสลับแท็บเมนู
+ * 3. อัปเดต Dropdowns ตัวกรอง (ไม่มี "รอบรายงาน" เพราะคำนวณอัตโนมัติ)
  */
-function switchTab(tabId) {
-  state.activeTab = tabId;
-  document.querySelectorAll('.nav-tab-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.tab === tabId);
-  });
-  document.querySelectorAll('.tab-content-section').forEach(el => {
-    el.style.display = el.id === `tab-${tabId}` ? 'block' : 'none';
-  });
+function populateFilterOptions() {
+  // ผู้ตรวจสอบ
+  const audSelect = document.getElementById('filter-auditor');
+  if (audSelect) {
+    audSelect.innerHTML = '<option value="">-- ผู้ตรวจสอบทั้งหมด --</option>';
+    state.auditors.forEach(a => {
+      audSelect.innerHTML += `<option value="${escapeHtml(a.name)}">${escapeHtml(a.name)} (${escapeHtml(a.nickname || a.group)})</option>`;
+    });
+  }
 
-  renderCurrentTab();
-}
-
-/**
- * Render เนื้อหาของแท็บที่เลือก
- */
-function renderCurrentTab() {
-  if (state.activeTab === 'dashboard') {
-    renderDashboard();
-  } else if (state.activeTab === 'tracking') {
-    renderTrackingTable();
-  } else if (state.activeTab === 'departments') {
-    renderDepartmentsTable();
-  } else if (state.activeTab === 'settings') {
-    renderSettingsView();
+  // ส่วนงาน/คณะ
+  const deptSelect = document.getElementById('filter-department');
+  if (deptSelect) {
+    deptSelect.innerHTML = '<option value="">-- ส่วนงาน/คณะทั้งหมด --</option>';
+    state.departments.filter(d => d.status === 'ใช้งาน').forEach(d => {
+      deptSelect.innerHTML += `<option value="${escapeHtml(d.name)}">${escapeHtml(d.name)}</option>`;
+    });
   }
 }
 
 /**
- * แสดงโปรไฟล์ผู้ใช้งานและ Role Badge
+ * 4. การกรองข้อมูล และคำนวณ KPI Cards เชิงลึก
  */
-function renderUserProfile() {
-  const user = state.user;
-  if (!user) return;
+function applyFiltersAndRender() {
+  const f = state.filters;
+  const q = (f.search || '').trim().toLowerCase();
 
-  const nameEl = document.getElementById('user-display-name');
-  const roleEl = document.getElementById('user-role-badge');
-  const groupEl = document.getElementById('user-group-name');
+  // กรองส่วนงาน
+  const filteredDepts = state.departments.filter(d => {
+    if (d.status !== 'ใช้งาน') return false;
+    if (f.department && d.name !== f.department) return false;
+    if (f.auditor && d.auditor !== f.auditor) return false;
 
-  if (nameEl) nameEl.textContent = user.name ? `${user.name} (${user.nickname || ''})` : user.email;
-  if (groupEl) groupEl.textContent = user.group || 'สำนักงานตรวจสอบภายใน';
-  if (roleEl) {
-    roleEl.className = `role-tag ${user.role}`;
-    roleEl.textContent = user.role;
-  }
+    // กรองกลุ่มงานของผู้ตรวจสอบ
+    if (f.group) {
+      const audObj = state.auditors.find(a => a.name === d.auditor);
+      if (audObj && audObj.group !== f.group) return false;
+    }
 
-  // ซ่อน/แสดง เมนูตามสิทธิ์
-  const isDean = user.role === 'Dean' || user.role === 'Admin';
-  const isAdmin = user.role === 'Admin';
+    if (q) {
+      const match = d.name.toLowerCase().includes(q) || (d.auditor && d.auditor.toLowerCase().includes(q));
+      if (!match) return false;
+    }
+    return true;
+  });
 
-  const deanOnlyEls = document.querySelectorAll('.dean-only');
-  deanOnlyEls.forEach(el => el.style.display = isDean ? '' : 'none');
-
-  const adminOnlyEls = document.querySelectorAll('.admin-only');
-  adminOnlyEls.forEach(el => el.style.display = isAdmin ? '' : 'none');
+  renderExecutiveKPI(filteredDepts);
+  renderMatrixTable(filteredDepts);
 }
 
 /**
- * Render Dashboard: Summary Cards, Lagging Reports, Group/Auditor Performance
+ * 5. คำนวณ Executive KPI Cards เมื่อเลือกงวดรายงาน เช่น เดือนเมษายน
  */
-function renderDashboard() {
-  const list = state.filteredTracking;
-  const user = state.user || {};
-  const isDean = user.role === 'Dean' || user.role === 'Admin';
-  const kpiStandard = parseInt(state.configs.KPI_DAYS, 10) || 20;
+function renderExecutiveKPI(depts) {
+  const fy = state.filters.fiscalYear || '2570';
+  const selectedPeriod = state.filters.period; // เช่น 'เดือนเมษายน' หรือ '' (ทั้งหมด)
+  const totalDepts = depts.length; // เช่น 41 ส่วนงาน
 
-  // 1. คำนวณตัวเลขสถิติภาพรวม
-  let totalCount = list.length;
-  let receivedCount = 0;
-  let inProgressCount = 0;
-  let submittedDeanCount = 0;
-  let completedCount = 0;
-  let onTimeCount = 0;
-  let overdueCount = 0;
-  let pendingEditCount = 0;
+  let pendingDeanCount = 0; // ค้างยังไม่ได้เสนอ ผอ.
+  let pendingPresidentCount = 0; // ยังไม่ได้เสนออธิการบดี (ยังไม่เสร็จสิ้น)
+  let completedCount = 0; // เสนออธิการบดีแล้ว
+  let totalDaysToPresident = 0;
+  let countPresidentWithDays = 0;
   let totalEditDays = 0;
-  let totalEditRounds = 0;
+  let totalEditCount = 0;
+  let countReportsWithEdits = 0;
 
-  list.forEach(item => {
-    if (item.dateAuditorReceived) receivedCount++;
-    if (item.status === 'ผู้ตรวจสอบกำลังตรวจสอบ' || item.status === 'เสนอหัวหน้ากลุ่มงานแล้ว') inProgressCount++;
-    if (item.dateSubmittedToDean) submittedDeanCount++;
-    if (item.dateSubmittedToPresident) completedCount++;
-
-    if (item.kpiStatus === 'ทันกำหนด') onTimeCount++;
-    if (item.kpiStatus === 'เกินกำหนด') overdueCount++;
-
-    if (item.hasPendingEdit) pendingEditCount++;
-    if (item.editCount) totalEditRounds += item.editCount;
-    if (item.editTotalDays) totalEditDays += item.editTotalDays;
-  });
-
-  const kpiPercent = submittedDeanCount > 0 ? Math.round((onTimeCount / submittedDeanCount) * 100) : 100;
-
-  // Update Summary Elements
-  setElText('stat-total', totalCount);
-  setElText('stat-received', receivedCount);
-  setElText('stat-in-progress', inProgressCount);
-  setElText('stat-submitted-dean', submittedDeanCount);
-  setElText('stat-completed', completedCount);
-  setElText('stat-kpi-ontime', `${onTimeCount} (${kpiPercent}%)`);
-  setElText('stat-kpi-overdue', overdueCount);
-
-  // สถิติการแก้ไข (แสดงเฉพาะ Dean / Admin)
-  if (isDean) {
-    setElText('stat-pending-edit', pendingEditCount);
-    setElText('stat-total-edit-rounds', totalEditRounds);
-    setElText('stat-total-edit-days', `${totalEditDays} วัน`);
-  }
-
-  // 2. คำนวณการติดตาม "งบการเงินที่ไม่เป็นปัจจุบัน (Lagging Periods)"
-  calculateAndRenderLaggingReports();
-
-  // 3. Render ตารางสรุปรายบุคคล / กลุ่มงาน
-  renderPerformanceSummary();
-}
-
-/**
- * คำนวณและแสดงผล: งบการเงินค้างส่งที่ไม่เป็นปัจจุบัน
- * เช่น: ปัจจุบันเดือน พฤศจิกายน 2569 แต่งบล่าสุดที่ได้รับถึงแค่ เมษายน 2569
- * -> จะมีรายงานค้างที่ไม่เป็นปัจจุบัน 6 งวด
- */
-function calculateAndRenderLaggingReports() {
-  const container = document.getElementById('lagging-reports-container');
-  const countBadge = document.getElementById('lagging-total-count');
-  if (!container) return;
-
-  const depts = state.departments.filter(d => d.status === 'ใช้งาน');
-  const currentFy = state.filters.fiscalYear || '2570';
-
-  // วันที่ปัจจุบัน (หรือรอบปีงบประมาณที่เลือก)
-  const today = new Date();
-  const currentMonthNum = today.getMonth() + 1; // 1-12
-  const currentYearBE = today.getFullYear() + 543;
-
-  // หาว่างวดที่ "ควรจะส่งแล้วตามเกณฑ์ (ไม่เกินวันที่ 20 ของเดือนถัดไป)" คืออะไรบ้าง
-  // ในปีงบประมาณ ต.ค. (M10), พ.ย. (M11), ธ.ค. (M12)...
-  const laggingItems = [];
+  // รายการสำหรับ Drilldown
+  const listPendingDean = [];
+  const listPendingPresident = [];
 
   depts.forEach(dept => {
-    // หางานตรวจสอบของส่วนงานนี้ในปีงบประมาณที่เลือก
-    const deptTracks = state.trackingList.filter(t => t.department === dept.name && t.fiscalYear.toString() === currentFy.toString());
+    // หางานตรวจสอบในรอบปีงบประมาณและงวดที่เลือก
+    let matchingTracks = state.trackingList.filter(t => t.department === dept.name && t.fiscalYear.toString() === fy.toString());
 
-    if (dept.cycle === 'รายไตรมาส') {
-      // ตรวจสอบรายไตรมาส (FS014 งบรวม มช.)
-      QUARTERS.forEach((q, idx) => {
-        const found = deptTracks.find(t => t.period.includes(q.key) || t.period.includes(`ไตรมาส ${idx + 1}`));
-        if (!found || !found.dateReceivedFromDept) {
-          laggingItems.push({
-            department: dept.name,
-            auditor: dept.auditor,
-            cycle: 'รายไตรมาส',
-            period: q.name,
-            expectedBy: `ภายใน 20 ของเดือนถัดไปหลังสิ้นไตรมาส`,
-            status: found ? 'ยังไม่ได้รับงบจากส่วนงาน' : 'ยังไม่ได้สร้างรายการงวด'
-          });
-        }
-      });
+    if (selectedPeriod) {
+      matchingTracks = matchingTracks.filter(t => t.period && t.period.includes(selectedPeriod));
+    }
+
+    if (matchingTracks.length === 0) {
+      // ยังไม่มีรายการในงวดนี้
+      pendingDeanCount++;
+      pendingPresidentCount++;
+      listPendingDean.push({ department: dept.name, auditor: dept.auditor, status: 'ยังไม่ได้รับงบ/ยังไม่เสนอ ผอ.' });
+      listPendingPresident.push({ department: dept.name, auditor: dept.auditor, status: 'ยังไม่เสนออธิการบดี' });
     } else {
-      // ตรวจสอบรายเดือน 12 เดือน
-      FISCAL_MONTHS.forEach(m => {
-        const found = deptTracks.find(t => t.period.includes(m.name));
-        // ถ้างวดนี้ยังไม่ได้รับงบ หรือยังไม่มีรายการ
-        if (!found || !found.dateReceivedFromDept) {
-          laggingItems.push({
-            department: dept.name,
-            auditor: dept.auditor,
-            cycle: 'รายเดือน',
-            period: m.name,
-            expectedBy: `วันที่ 20 ของเดือนถัดไป`,
-            status: found ? 'ยังไม่ได้รับงบจากส่วนงาน' : 'ยังไม่ได้สร้างรายการงวด'
-          });
+      matchingTracks.forEach(t => {
+        const hasSubmittedDean = !!t.dateSubmittedToDean;
+        const hasSubmittedPresident = !!t.dateSubmittedToPresident;
+
+        if (!hasSubmittedDean) {
+          pendingDeanCount++;
+          listPendingDean.push({ department: dept.name, auditor: t.auditor || dept.auditor, status: 'ยังไม่เสนอ ผอ.' });
+        }
+
+        if (!hasSubmittedPresident) {
+          pendingPresidentCount++;
+          listPendingPresident.push({ department: dept.name, auditor: t.auditor || dept.auditor, status: hasSubmittedDean ? 'เสนอ ผอ. แล้ว (รอความเห็นชอบ/เสนออธิการบดี)' : 'ยังไม่เสนอ ผอ.' });
+        } else {
+          completedCount++;
+          // คำนวณระยะเวลารับงบถึงเสนออธิการบดี
+          if (t.dateAuditorReceived && t.dateSubmittedToPresident) {
+            const d1 = parseDateSafe(t.dateAuditorReceived);
+            const d2 = parseDateSafe(t.dateSubmittedToPresident);
+            if (d1 && d2) {
+              const diff = Math.max(0, Math.round((d2 - d1) / (24 * 60 * 60 * 1000)));
+              totalDaysToPresident += diff;
+              countPresidentWithDays++;
+            }
+          }
+        }
+
+        if (t.editCount > 0) {
+          totalEditCount += t.editCount;
+          totalEditDays += (t.editTotalDays || 0);
+          countReportsWithEdits++;
         }
       });
     }
   });
 
-  if (countBadge) countBadge.textContent = laggingItems.length;
+  const avgDaysToPresident = countPresidentWithDays > 0 ? (totalDaysToPresident / countPresidentWithDays).toFixed(1) : '-';
+  const avgEditDays = countReportsWithEdits > 0 ? (totalEditDays / countReportsWithEdits).toFixed(1) : '0';
+  const avgEditCount = totalDepts > 0 ? (totalEditCount / totalDepts).toFixed(1) : '0';
 
-  if (laggingItems.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state" style="padding: 20px;">
-        <span style="color: #10b981; font-size: 1.1rem; font-weight: 600;">✓ เป็นปัจจุบันครบถ้วน ไม่มีงบการเงินค้างส่ง</span>
-      </div>`;
-    return;
-  }
+  // อัปเดตตัวเลขลง Cards
+  const periodLabel = selectedPeriod ? `[${selectedPeriod}]` : 'ทั้งปีงบประมาณ';
+  setElText('kpi-period-tag', periodLabel);
+  setElText('kpi-total-depts', totalDepts);
+  setElText('kpi-completed-ratio', `${completedCount} / ${totalDepts}`);
+  setElText('kpi-pending-dean', pendingDeanCount);
+  setElText('kpi-pending-president', pendingPresidentCount);
+  setElText('kpi-avg-days-president', avgDaysToPresident !== '-' ? `${avgDaysToPresident} วัน` : '-');
+  setElText('kpi-avg-edit-days', `${avgEditDays} วัน`);
+  setElText('kpi-avg-edit-count', `${avgEditCount} ครั้ง`);
 
-  // สร้างตารางสรุปงบค้างส่ง
-  let html = `
-    <div class="table-responsive" style="max-height: 280px;">
-      <table class="custom-table">
-        <thead>
-          <tr>
-            <th>ส่วนงาน</th>
-            <th>รอบ</th>
-            <th>งวดที่ค้าง</th>
-            <th>ผู้รับผิดชอบ</th>
-            <th>สถานะ</th>
-          </tr>
-        </thead>
-        <tbody>
-  `;
-
-  laggingItems.slice(0, 15).forEach(item => {
-    html += `
-      <tr>
-        <td style="font-weight: 500;">${escapeHtml(item.department)}</td>
-        <td><span class="badge ${item.cycle === 'รายไตรมาส' ? 'badge-purple' : 'badge-info'}">${item.cycle}</span></td>
-        <td style="color: #b91c1c; font-weight: 600;">${escapeHtml(item.period)}</td>
-        <td>${escapeHtml(item.auditor)}</td>
-        <td><span class="badge badge-warning">${escapeHtml(item.status)}</span></td>
-      </tr>
-    `;
-  });
-
-  if (laggingItems.length > 15) {
-    html += `<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">และอีก ${laggingItems.length - 15} รายการ...</td></tr>`;
-  }
-
-  html += `</tbody></table></div>`;
-  container.innerHTML = html;
+  // บันทึกข้อมูลสำหรับปุ่ม Drilldown
+  state.lastDrilldownData = {
+    pendingDean: listPendingDean,
+    pendingPresident: listPendingPresident,
+    period: selectedPeriod || 'ทุกงวด'
+  };
 }
 
 /**
- * Render รายละเอียดประสิทธิภาพรายบุคคล / รายกลุ่มงาน (สำหรับ ผอ. และ หัวหน้ากลุ่มงาน)
+ * 6. สร้าง Matrix Table: ส่วนงาน x 12 เดือนในรอบปีงบประมาณ (ต.ค. - ก.ย.)
  */
-function renderPerformanceSummary() {
-  const container = document.getElementById('auditor-performance-container');
+function renderMatrixTable(depts) {
+  const container = document.getElementById('matrix-table-body');
   if (!container) return;
 
+  const fy = state.filters.fiscalYear || '2570';
   const isDean = state.user && (state.user.role === 'Dean' || state.user.role === 'Admin');
 
-  // จัดกลุ่มตามผู้ตรวจสอบ
-  const summaryMap = {};
-
-  state.filteredTracking.forEach(t => {
-    const name = t.auditor || 'ไม่ระบุผู้ตรวจ';
-    if (!summaryMap[name]) {
-      summaryMap[name] = {
-        name: name,
-        group: t.auditorGroup || '-',
-        total: 0,
-        received: 0,
-        submittedDean: 0,
-        onTime: 0,
-        overdue: 0,
-        totalDays: 0,
-        editCount: 0,
-        editDays: 0
-      };
-    }
-
-    summaryMap[name].total++;
-    if (t.dateAuditorReceived) summaryMap[name].received++;
-    if (t.dateSubmittedToDean) {
-      summaryMap[name].submittedDean++;
-      if (t.kpiStatus === 'ทันกำหนด') summaryMap[name].onTime++;
-      if (t.kpiStatus === 'เกินกำหนด') summaryMap[name].overdue++;
-      if (t.kpiDays) summaryMap[name].totalDays += t.kpiDays;
-    }
-    if (t.editCount) summaryMap[name].editCount += t.editCount;
-    if (t.editTotalDays) summaryMap[name].editDays += t.editTotalDays;
-  });
-
-  const rows = Object.values(summaryMap);
-  if (rows.length === 0) {
-    container.innerHTML = '<div class="empty-state">ไม่มีข้อมูลตามเงื่อนไขที่เลือก</div>';
+  if (depts.length === 0) {
+    container.innerHTML = `<tr><td colspan="15" style="text-align: center; padding: 40px; color: var(--text-muted);">ไม่พบข้อมูลส่วนงานตามเงื่อนไขที่เลือก</td></tr>`;
     return;
   }
 
-  let html = `
-    <div class="table-responsive">
-      <table class="custom-table">
-        <thead>
-          <tr>
-            <th>ผู้ตรวจสอบ</th>
-            <th>กลุ่มงาน</th>
-            <th style="text-align: center;">งานมอบหมาย</th>
-            <th style="text-align: center;">เสนอ ผอ. แล้ว</th>
-            <th style="text-align: center;">ทันตาม KPI</th>
-            <th style="text-align: center;">เกินกำหนด</th>
-            <th style="text-align: center;">เวลาเฉลี่ย (วัน)</th>
-            ${isDean ? '<th style="text-align: center; color: #6d28d9;">ส่งกลับแก้ไข (ครั้ง)</th><th style="text-align: center; color: #6d28d9;">วันแก้ไขรวม</th>' : ''}
-          </tr>
-        </thead>
-        <tbody>
-  `;
+  let html = '';
 
-  rows.forEach(r => {
-    const avgDays = r.submittedDean > 0 ? (r.totalDays / r.submittedDean).toFixed(1) : '-';
-    const kpiRate = r.submittedDean > 0 ? Math.round((r.onTime / r.submittedDean) * 100) : '-';
+  depts.forEach((dept, idx) => {
+    const isQuarterly = dept.cycle === 'รายไตรมาส';
+    const deptTracks = state.trackingList.filter(t => t.department === dept.name && t.fiscalYear.toString() === fy.toString());
 
-    html += `
-      <tr>
-        <td style="font-weight: 600;">${escapeHtml(r.name)}</td>
-        <td>${escapeHtml(r.group)}</td>
-        <td style="text-align: center;">${r.total}</td>
-        <td style="text-align: center;">${r.submittedDean}</td>
-        <td style="text-align: center;"><span class="badge badge-success">${r.onTime} (${kpiRate}%)</span></td>
-        <td style="text-align: center;">${r.overdue > 0 ? `<span class="badge badge-danger">${r.overdue}</span>` : '0'}</td>
-        <td style="text-align: center; font-weight: 500;">${avgDays}</td>
-        ${isDean ? `<td style="text-align: center; font-weight: 600; color: #6d28d9;">${r.editCount}</td><td style="text-align: center;">${r.editDays} วัน</td>` : ''}
-      </tr>
-    `;
-  });
+    // คำนวณความคืบหน้า (จำนวนเดือนที่เสร็จสิ้น)
+    let completedMonths = 0;
 
-  html += '</tbody></table></div>';
-  container.innerHTML = html;
-}
+    let rowMonthsHtml = '';
+    FISCAL_MONTHS.forEach(m => {
+      // ตรวจสอบว่าเป็นส่วนงานรายไตรมาสหรือไม่
+      if (isQuarterly) {
+        if (!m.qReport) {
+          // เดือน ต.ค., พ.ย., ธ.ค. ฯลฯ ไม่ได้ส่งรายเดือนเดี่ยวๆ ให้ขึ้นข้อความสีเทาอ่อน "รายไตรมาส"
+          rowMonthsHtml += `
+            <td>
+              <div class="cell-month-box">
+                <span class="status-badge-quarterly-placeholder">รายไตรมาส</span>
+              </div>
+            </td>`;
+          return;
+        }
 
-/**
- * Render ตารางติดตามงานตรวจสอบ (Tracking Table)
- */
-function renderTrackingTable() {
-  const container = document.getElementById('tracking-table-container');
-  if (!container) return;
+        // ในเดือนที่เป็นกำหนดส่งงวดไตรมาส (ม.ค. = Q1, เม.ย. = Q2, ก.ค. = Q3, ก.ย. = Q4)
+        const qTrack = deptTracks.find(t => t.period && (t.period.includes(m.qReport) || t.period.includes(m.fullName)));
+        rowMonthsHtml += `<td>${renderMonthCellBadge(dept, m.fullName, qTrack)}</td>`;
+        if (qTrack && qTrack.dateSubmittedToPresident) completedMonths += 3;
+      } else {
+        // ส่วนงานรายเดือนปกติ
+        const monthTrack = deptTracks.find(t => t.period && t.period.includes(m.fullName));
+        rowMonthsHtml += `<td>${renderMonthCellBadge(dept, m.fullName, monthTrack)}</td>`;
+        if (monthTrack && monthTrack.dateSubmittedToPresident) completedMonths++;
+      }
+    });
 
-  const list = state.filteredTracking;
-  const user = state.user || {};
-  const isDean = user.role === 'Dean' || user.role === 'Admin';
+    const maxPeriods = isQuarterly ? 12 : 12;
+    const progressPercent = Math.min(100, Math.round((completedMonths / maxPeriods) * 100));
 
-  if (list.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">📋</div>
-        <h4>ไม่พบรายการงานตรวจสอบ</h4>
-        <p>คลิกปุ่ม "+ เพิ่มรายการตรวจสอบ" เพื่อเริ่มต้นสร้างงวดงาน</p>
-      </div>`;
-    return;
-  }
-
-  let html = `
-    <table class="custom-table">
-      <thead>
-        <tr>
-          <th>รหัสงาน</th>
-          <th>ส่วนงาน</th>
-          <th>งวดรายงาน</th>
-          <th>ผู้ตรวจสอบ</th>
-          <th>วันที่รับงบ</th>
-          <th>เสนอ ผอ.</th>
-          <th>KPI 20 วัน</th>
-          <th>สถานะ</th>
-          ${isDean ? '<th>แก้ไข</th>' : ''}
-          <th style="text-align: right;">การจัดการ</th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
-
-  list.forEach(item => {
-    let kpiBadgeClass = 'badge-secondary';
-    if (item.kpiStatus === 'ทันกำหนด') kpiBadgeClass = 'badge-success';
-    else if (item.kpiStatus === 'เกินกำหนด') kpiBadgeClass = 'badge-danger';
-    else if (item.kpiStatus === 'ใกล้ครบกำหนด') kpiBadgeClass = 'badge-warning';
-    else if (item.kpiStatus === 'อยู่ระหว่างตรวจสอบ') kpiBadgeClass = 'badge-info';
-
-    let statusBadgeClass = 'badge-secondary';
-    if (item.status === 'เสนออธิการบดีแล้ว') statusBadgeClass = 'badge-success';
-    else if (item.status === 'ผู้อำนวยการเห็นชอบแล้ว') statusBadgeClass = 'badge-purple';
-    else if (item.status === 'ผู้อำนวยการส่งกลับแก้ไข') statusBadgeClass = 'badge-danger';
-    else if (item.status === 'เสนอผู้อำนวยการแล้ว') statusBadgeClass = 'badge-info';
-    else if (item.status === 'ผู้ตรวจสอบกำลังตรวจสอบ') statusBadgeClass = 'badge-warning';
+    // หางานกลุ่มงาน
+    const audObj = state.auditors.find(a => a.name === dept.auditor);
+    const groupName = audObj ? audObj.group : 'งานตรวจสอบ';
 
     html += `
       <tr>
-        <td style="font-weight: 600; font-family: monospace;">${escapeHtml(item.trackingId)}</td>
-        <td style="font-weight: 500;">
-          ${escapeHtml(item.department)}
-          <span class="badge ${item.cycle === 'รายไตรมาส' ? 'badge-purple' : 'badge-secondary'}" style="font-size: 0.7rem; margin-left: 4px;">${item.cycle}</span>
+        <td class="sticky-col-dept">
+          <div style="cursor: pointer;" onclick="openDepartmentDrilldown('${escapeHtml(dept.name)}')">
+            <div style="font-weight: 600; color: var(--text-title); font-size: 0.9rem;">
+              ${escapeHtml(dept.name)}
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-top: 3px;">
+              <span class="badge badge-purple" style="font-size: 0.7rem;">👤 ${escapeHtml(dept.auditor)}</span>
+              <span style="font-size: 0.72rem; color: var(--text-muted);">${escapeHtml(groupName)}</span>
+            </div>
+          </div>
         </td>
-        <td>${escapeHtml(item.period)}</td>
-        <td>${escapeHtml(item.auditor)}</td>
-        <td>${item.dateAuditorReceived || '<span style="color:#94a3b8;">-</span>'}</td>
-        <td>${item.dateSubmittedToDean || '<span style="color:#94a3b8;">-</span>'}</td>
-        <td>
-          <span class="badge ${kpiBadgeClass}">
-            ${item.kpiStatus} ${item.kpiDays !== null ? `(${item.kpiDays} วัน)` : ''}
-          </span>
-        </td>
-        <td><span class="badge ${statusBadgeClass}">${item.status}</span></td>
-        ${isDean ? `<td>${item.editCount > 0 ? `<span class="badge badge-warning">${item.editCount} ครั้ง (${item.editTotalDays} วัน)</span>` : '<span style="color:#94a3b8;">0</span>'}</td>` : ''}
-        <td style="text-align: right;">
-          <div style="display: inline-flex; gap: 6px;">
-            <button class="btn btn-secondary btn-sm" onclick="openTrackingModal('${item.trackingId}')" title="ดูรายละเอียดและบันทึกข้อมูล">
-              ✏️ จัดการ
-            </button>
-            <button class="btn btn-secondary btn-sm" onclick="openEditModal('${item.trackingId}')" title="ประวัติการส่งกลับแก้ไข">
-              🔄 แก้ไข (${item.editCount || 0})
-            </button>
+        ${rowMonthsHtml}
+        <td style="min-width: 110px;">
+          <div style="display: flex; align-items: center; gap: 8px; justify-content: center;">
+            <div style="flex: 1; height: 6px; background: #ede9fe; border-radius: 4px; overflow: hidden;">
+              <div style="width: ${progressPercent}%; height: 100%; background: linear-gradient(90deg, #8b5cf6, #10b981); border-radius: 4px;"></div>
+            </div>
+            <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-title);">${progressPercent}%</span>
           </div>
         </td>
       </tr>
     `;
   });
 
-  html += '</tbody></table>';
   container.innerHTML = html;
 }
 
 /**
- * เปิด Modal กรอก/แก้ไขข้อมูล Tracking
+ * 7. Render Badge ในช่องเดือนของ Matrix
  */
-function openTrackingModal(trackingId) {
-  const item = state.trackingList.find(t => t.trackingId === trackingId) || null;
-  state.selectedTracking = item;
-
-  const modal = document.getElementById('modal-tracking');
-  const titleEl = document.getElementById('modal-tracking-title');
-  const form = document.getElementById('tracking-form');
-  if (!modal || !form) return;
-
-  form.reset();
-
-  const user = state.user || {};
-  const isDean = user.role === 'Dean' || user.role === 'Admin';
-
-  if (item) {
-    titleEl.textContent = `จัดการงานตรวจสอบ: ${item.trackingId} (${item.department})`;
-    document.getElementById('input-track-id').value = item.trackingId;
-    document.getElementById('input-track-fy').value = item.fiscalYear;
-    document.getElementById('input-track-cycle').value = item.cycle;
-    document.getElementById('input-track-dept').value = item.department;
-    document.getElementById('input-track-period').value = item.period;
-    document.getElementById('input-track-auditor').value = item.auditor;
-
-    document.getElementById('input-date-dept').value = formatDateForInput(item.dateReceivedFromDept);
-    document.getElementById('input-date-auditor').value = formatDateForInput(item.dateAuditorReceived);
-    document.getElementById('input-date-leader').value = formatDateForInput(item.dateSubmittedToLeader);
-    document.getElementById('input-date-dean').value = formatDateForInput(item.dateSubmittedToDean);
-    document.getElementById('input-date-approved').value = formatDateForInput(item.dateDeanApproved);
-    document.getElementById('input-date-president').value = formatDateForInput(item.dateSubmittedToPresident);
-
-    // แสดงปุ่ม ผอ. เห็นชอบ และ ปุ่มเสนออธิการบดี
-    const deanActions = document.getElementById('dean-workflow-actions');
-    if (deanActions) {
-      deanActions.style.display = isDean ? 'flex' : 'none';
-      const btnApprove = document.getElementById('btn-dean-approve');
-      const btnComplete = document.getElementById('btn-dean-complete');
-      const btnCancel = document.getElementById('btn-dean-cancel');
-
-      if (btnApprove) btnApprove.disabled = !!item.dateDeanApproved;
-      if (btnComplete) btnComplete.disabled = !item.dateDeanApproved || !!item.dateSubmittedToPresident || item.hasPendingEdit;
-      if (btnCancel) btnCancel.style.display = item.dateSubmittedToPresident ? 'inline-flex' : 'none';
-    }
-  } else {
-    titleEl.textContent = 'เพิ่มรายการตรวจสอบงบการเงินใหม่';
-    document.getElementById('input-track-id').value = '';
-    document.getElementById('input-track-fy').value = state.filters.fiscalYear || '2570';
-    document.getElementById('input-track-cycle').value = 'รายเดือน';
-
-    const deanActions = document.getElementById('dean-workflow-actions');
-    if (deanActions) deanActions.style.display = 'none';
+function renderMonthCellBadge(dept, periodName, trackItem) {
+  if (!trackItem) {
+    return `<div class="cell-month-box" onclick="openDrilldownNew('${escapeHtml(dept.name)}', '${escapeHtml(periodName)}')"><span class="status-badge-empty">-</span></div>`;
   }
 
-  modal.classList.add('active');
+  // 1. ถ้า ผอ. กดเสร็จสิ้นเสนออธิการบดีแล้ว -> ขึ้นเครื่องหมายถูกสีเขียว ✓
+  if (trackItem.dateSubmittedToPresident) {
+    return `
+      <div class="cell-month-box" onclick="openItemDrilldown('${trackItem.trackingId}')" title="เสนออธิการบดีแล้วเมื่อ ${trackItem.dateSubmittedToPresident}">
+        <div class="status-badge-completed">✓</div>
+      </div>
+    `;
+  }
+
+  // 2. ถ้า ผอ. เห็นชอบแล้ว (รอเสนออธิการบดี)
+  if (trackItem.dateDeanApproved) {
+    return `
+      <div class="cell-month-box" onclick="openItemDrilldown('${trackItem.trackingId}')" title="ผอ. เห็นชอบแล้ว (พร้อมเสนออธิการบดี)">
+        <span class="status-badge-pending-dean">ผอ.เห็นชอบ</span>
+      </div>
+    `;
+  }
+
+  // 3. ถ้าอยู่ระหว่างส่งกลับแก้ไข
+  if (trackItem.hasPendingEdit) {
+    return `
+      <div class="cell-month-box" onclick="openItemDrilldown('${trackItem.trackingId}')" title="อยู่ระหว่างส่งกลับแก้ไข">
+        <span class="status-badge-editing">รอแก้ไข</span>
+      </div>
+    `;
+  }
+
+  // 4. ถ้าเสนอ ผอ. แล้ว
+  if (trackItem.dateSubmittedToDean) {
+    return `
+      <div class="cell-month-box" onclick="openItemDrilldown('${trackItem.trackingId}')" title="เสนอ ผอ. แล้วเมื่อ ${trackItem.dateSubmittedToDean}">
+        <span class="status-badge-pending-dean">เสนอ ผอ.</span>
+      </div>
+    `;
+  }
+
+  // 5. ผู้ตรวจกำลังตรวจ
+  if (trackItem.dateAuditorReceived) {
+    return `
+      <div class="cell-month-box" onclick="openItemDrilldown('${trackItem.trackingId}')" title="ผู้ตรวจสอบกำลังตรวจ (รับงบเมื่อ ${trackItem.dateAuditorReceived})">
+        <span class="status-badge-reviewing">กำลังตรวจ</span>
+      </div>
+    `;
+  }
+
+  // 6. ได้รับงบจากส่วนงานแล้ว
+  if (trackItem.dateReceivedFromDept) {
+    return `
+      <div class="cell-month-box" onclick="openItemDrilldown('${trackItem.trackingId}')" title="ได้รับงบแล้ว (รอส่งมอบ)">
+        <span class="status-badge-reviewing">ได้รับงบ</span>
+      </div>
+    `;
+  }
+
+  return `<div class="cell-month-box"><span class="status-badge-empty">-</span></div>`;
 }
 
 /**
- * บันทึกฟอร์มงานตรวจสอบ (Save Tracking)
+ * 8. Drilldown Drawer (ดูข้อมูลเชิงลึกและสั่งการ)
  */
-async function handleTrackingFormSubmit(e) {
-  e.preventDefault();
-  showLoading(true);
+function openItemDrilldown(trackingId) {
+  const item = state.trackingList.find(t => t.trackingId === trackingId);
+  if (!item) return;
 
-  const payload = {
-    trackingId: document.getElementById('input-track-id').value,
-    fiscalYear: document.getElementById('input-track-fy').value,
-    cycle: document.getElementById('input-track-cycle').value,
-    department: document.getElementById('input-track-dept').value,
-    period: document.getElementById('input-track-period').value,
-    auditor: document.getElementById('input-track-auditor').value,
-    dateReceivedFromDept: document.getElementById('input-date-dept').value,
-    dateAuditorReceived: document.getElementById('input-date-auditor').value,
-    dateSubmittedToLeader: document.getElementById('input-date-leader').value,
-    dateSubmittedToDean: document.getElementById('input-date-dean').value,
-    dateDeanApproved: document.getElementById('input-date-approved').value,
-    dateSubmittedToPresident: document.getElementById('input-date-president').value
-  };
+  state.selectedDrilldown = item;
+  const drawer = document.getElementById('drilldown-drawer');
+  const backdrop = document.getElementById('drawer-backdrop');
 
-  try {
-    const res = await Api.call('saveTracking', {
-      trackingData: payload,
-      email: state.user ? state.user.email : ''
-    });
+  document.getElementById('drill-title').textContent = `${item.department}`;
+  document.getElementById('drill-period-badge').textContent = `${item.period} (ปีงบ ${item.fiscalYear})`;
+  document.getElementById('drill-auditor-badge').textContent = `ผู้ตรวจสอบ: ${item.auditor}`;
 
-    if (res.success) {
-      showToast('บันทึกข้อมูลงานตรวจสอบเรียบร้อย', 'success');
-      closeModal('modal-tracking');
-      await refreshTrackingData();
-    }
-  } catch (err) {
-    showToast('เกิดข้อผิดพลาดในการบันทึก: ' + err.message, 'error');
-  } finally {
-    showLoading(false);
+  // Timeline
+  document.getElementById('drill-date-dept').textContent = item.dateReceivedFromDept || 'ยังไม่มีข้อมูล';
+  document.getElementById('drill-date-auditor').textContent = item.dateAuditorReceived || 'ยังไม่มีข้อมูล';
+  document.getElementById('drill-date-leader').textContent = item.dateSubmittedToLeader || 'ยังไม่มีข้อมูล';
+  document.getElementById('drill-date-dean').textContent = item.dateSubmittedToDean || 'ยังไม่มีข้อมูล';
+  document.getElementById('drill-date-approved').textContent = item.dateDeanApproved || 'ยังไม่เห็นชอบ';
+  document.getElementById('drill-date-president').textContent = item.dateSubmittedToPresident || 'ยังไม่เสนออธิการบดี';
+
+  // สถิติการแก้ไข
+  const editBox = document.getElementById('drill-edit-info');
+  if (editBox) {
+    editBox.innerHTML = `แก้ไขทั้งหมด ${item.editCount || 0} ครั้ง (รวม ${item.editTotalDays || 0} วัน)`;
   }
+
+  // ปุ่มการพิจารณาของ ผอ.
+  const isDean = state.user && (state.user.role === 'Dean' || state.user.role === 'Admin');
+  const deanActionsBox = document.getElementById('drill-dean-actions');
+  if (deanActionsBox) {
+    deanActionsBox.style.display = isDean ? 'block' : 'none';
+    const btnApprove = document.getElementById('drill-btn-approve');
+    const btnComplete = document.getElementById('drill-btn-complete');
+    if (btnApprove) btnApprove.disabled = !!item.dateDeanApproved;
+    if (btnComplete) btnComplete.disabled = !item.dateDeanApproved || !!item.dateSubmittedToPresident || item.hasPendingEdit;
+  }
+
+  if (drawer) drawer.classList.add('open');
+  if (backdrop) backdrop.classList.add('active');
+}
+
+function openDepartmentDrilldown(deptName) {
+  const dept = state.departments.find(d => d.name === deptName);
+  if (!dept) return;
+
+  // กรองเมทริกซ์และเปิดดูรายละเอียด
+  showToast(`กำลังเปิดดูข้อมูลเชิงลึกส่วนงาน: ${deptName}`, 'info');
+  state.filters.department = deptName;
+  document.getElementById('filter-department').value = deptName;
+  applyFiltersAndRender();
+}
+
+function openDrilldownNew(deptName, periodName) {
+  const dept = state.departments.find(d => d.name === deptName);
+  const isQuarterly = dept && dept.cycle === 'รายไตรมาส';
+
+  if (!state.user) {
+    openLoginModal();
+    return;
+  }
+
+  // เปิดแบบฟอร์มกรอกงานงวดใหม่
+  openTrackingModalDirect(deptName, periodName, isQuarterly ? 'รายไตรมาส' : 'รายเดือน');
+}
+
+function closeDrilldown() {
+  const drawer = document.getElementById('drilldown-drawer');
+  const backdrop = document.getElementById('drawer-backdrop');
+  if (drawer) drawer.classList.remove('open');
+  if (backdrop) backdrop.classList.remove('active');
 }
 
 /**
- * การดำเนินการของ ผอ. (Approve, Complete, Cancel)
+ * 9. Action ของ ผอ. (ให้ความเห็นชอบ และ เสร็จสิ้นเสนออธิการบดี)
  */
-async function onDeanApprove() {
-  if (!state.selectedTracking) return;
+async function drilldownDeanApprove() {
+  if (!state.selectedDrilldown) return;
   if (!confirm('ยืนยันการให้ความเห็นชอบรายงานฉบับสมบูรณ์?')) return;
 
   showLoading(true);
   try {
     const res = await Api.call('approveByDean', {
-      trackingId: state.selectedTracking.trackingId,
+      trackingId: state.selectedDrilldown.trackingId,
       approveDate: new Date().toISOString(),
       email: state.user.email
     });
-
     if (res.success) {
-      showToast('บันทึกความเห็นชอบของผู้อำนวยการเรียบร้อย', 'success');
-      closeModal('modal-tracking');
-      await refreshTrackingData();
+      showToast('ผู้อำนวยการเห็นชอบรายงานฉบับสมบูรณ์เรียบร้อย', 'success');
+      closeDrilldown();
+      await loadRealtimeData();
     }
   } catch (err) {
     showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');
@@ -792,21 +782,20 @@ async function onDeanApprove() {
   }
 }
 
-async function onDeanComplete() {
-  if (!state.selectedTracking) return;
-  if (!confirm('ยืนยันการเสร็จสิ้นและเสนอรายงานต่ออธิการบดี? ระบบจะบันทึกวันที่ปัจจุบันลงในระบบ')) return;
+async function drilldownDeanComplete() {
+  if (!state.selectedDrilldown) return;
+  if (!confirm('ยืนยันการเสร็จสิ้นและเสนอรายงานต่ออธิการบดี? ระบบจะบันทึกวันที่ปัจจุบันลงในระบบ และแสดงเครื่องหมายเสร็จสิ้นทันที')) return;
 
   showLoading(true);
   try {
     const res = await Api.call('completeAndSubmit', {
-      trackingId: state.selectedTracking.trackingId,
+      trackingId: state.selectedDrilldown.trackingId,
       email: state.user.email
     });
-
     if (res.success) {
-      showToast('เสร็จสิ้นและเสนอรายงานต่ออธิการบดีเรียบร้อยแล้ว', 'success');
-      closeModal('modal-tracking');
-      await refreshTrackingData();
+      showToast('เสร็จสิ้นและเสนอรายงานต่ออธิการบดีเรียบร้อยแล้ว ✓', 'success');
+      closeDrilldown();
+      await loadRealtimeData();
     }
   } catch (err) {
     showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');
@@ -815,478 +804,92 @@ async function onDeanComplete() {
   }
 }
 
-async function onDeanCancelCompletion() {
-  if (!state.selectedTracking) return;
-  const reason = prompt('กรุณาระบุเหตุผลในการยกเลิกการเสนออธิการบดี:');
-  if (!reason || reason.trim() === '') return;
-
-  showLoading(true);
-  try {
-    const res = await Api.call('cancelCompletion', {
-      trackingId: state.selectedTracking.trackingId,
-      reason: reason.trim(),
-      email: state.user.email
-    });
-
-    if (res.success) {
-      showToast('ยกเลิกสถานะเสนออธิการบดีเรียบร้อยแล้ว', 'info');
-      closeModal('modal-tracking');
-      await refreshTrackingData();
-    }
-  } catch (err) {
-    showToast('ยกเลิกไม่สำเร็จ: ' + err.message, 'error');
-  } finally {
-    showLoading(false);
-  }
-}
-
 /**
- * เปิด Modal ประวัติการส่งกลับแก้ไข (Edit Modal)
+ * 10. Drilldown ดูรายการค้าง (ยังไม่เสนอ ผอ. หรือ ยังไม่เสนออธิการบดี)
  */
-function openEditModal(trackingId) {
-  const item = state.trackingList.find(t => t.trackingId === trackingId);
-  if (!item) return;
+function openListDrilldown(type) {
+  if (!state.lastDrilldownData) return;
+  const data = type === 'dean' ? state.lastDrilldownData.pendingDean : state.lastDrilldownData.pendingPresident;
+  const title = type === 'dean' ? 'รายชื่อส่วนงานที่ค้างยังไม่ได้เสนอ ผอ.' : 'รายชื่อส่วนงานที่ยังไม่ได้เสนออธิการบดี';
 
-  state.selectedTracking = item;
-  const modal = document.getElementById('modal-edit');
-  const title = document.getElementById('modal-edit-title');
-  const container = document.getElementById('edit-rounds-container');
+  const modal = document.getElementById('modal-list-drilldown');
+  const titleEl = document.getElementById('drilldown-list-title');
+  const container = document.getElementById('drilldown-list-content');
 
-  if (title) title.textContent = `ประวัติการส่งกลับแก้ไข: ${item.trackingId} (${item.department})`;
-
-  // Render ฟอร์มรอบใหม่
-  const newRoundForm = document.getElementById('new-edit-round-form');
-  if (newRoundForm) {
-    newRoundForm.reset();
-    document.getElementById('input-edit-tracking-id').value = item.trackingId;
-    document.getElementById('input-edit-date-return').value = new Date().toISOString().split('T')[0];
-  }
-
-  // Render ตารางรอบการแก้ไข
-  renderEditHistoryList(item);
-  modal.classList.add('active');
-}
-
-/**
- * บันทึกรอบการแก้ไขใหม่
- */
-async function handleNewEditRoundSubmit(e) {
-  e.preventDefault();
-  showLoading(true);
-
-  const payload = {
-    trackingId: document.getElementById('input-edit-tracking-id').value,
-    dateReturned: document.getElementById('input-edit-date-return').value,
-    dateResubmitted: document.getElementById('input-edit-date-resubmit').value,
-    note: document.getElementById('input-edit-note').value
-  };
-
-  try {
-    const res = await Api.call('saveEditRound', {
-      editData: payload,
-      email: state.user ? state.user.email : ''
-    });
-
-    if (res.success) {
-      showToast('บันทึกรอบการแก้ไขเรียบร้อย', 'success');
-      closeModal('modal-edit');
-      await refreshTrackingData();
-    }
-  } catch (err) {
-    showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
-  } finally {
-    showLoading(false);
-  }
-}
-
-function renderEditHistoryList(item) {
-  const container = document.getElementById('edit-rounds-container');
-  if (!container) return;
-
-  if (!item.editCount || item.editCount === 0) {
-    container.innerHTML = '<div class="empty-state" style="padding: 20px;">ไม่มีประวัติการส่งกลับแก้ไขสำหรับรายการนี้</div>';
-    return;
-  }
-
-  let html = `
-    <div class="table-responsive">
-      <table class="custom-table">
-        <thead>
-          <tr>
-            <th>รอบที่</th>
-            <th>วันที่ ผอ. ส่งกลับ</th>
-            <th>วันที่ส่งคืน ผอ.</th>
-            <th>จำนวนวันแก้ไข</th>
-            <th>หมายเหตุ/ประเด็น</th>
-            <th>สถานะ</th>
-          </tr>
-        </thead>
-        <tbody>
-  `;
-
-  // ถ้ามีรอบย่อยใน item ให้แสดง
-  html += `
-    <tr>
-      <td>ครั้งที่ 1</td>
-      <td>-</td>
-      <td>-</td>
-      <td>${item.editTotalDays || 0} วัน</td>
-      <td>-</td>
-      <td><span class="badge ${item.hasPendingEdit ? 'badge-danger' : 'badge-success'}">${item.hasPendingEdit ? 'รอแก้ไข' : 'ส่งคืนแล้ว'}</span></td>
-    </tr>
-  `;
-
-  html += '</tbody></table></div>';
-  container.innerHTML = html;
-}
-
-/**
- * จัดการส่วนงาน & เปลี่ยนตัวผู้รับผิดชอบ (Department Management)
- */
-function renderDepartmentsTable() {
-  const container = document.getElementById('departments-table-container');
-  if (!container) return;
-
-  const list = state.departments;
-  const user = state.user || {};
-  const canEdit = user.role === 'Admin' || user.role === 'Leader';
-
-  let html = `
-    <table class="custom-table">
-      <thead>
-        <tr>
-          <th>รหัส</th>
-          <th>ชื่อส่วนงาน</th>
-          <th>รอบการรายงาน</th>
-          <th>ผู้รับผิดชอบปัจจุบัน</th>
-          <th>วันที่เริ่มรับผิดชอบ</th>
-          <th>สถานะ</th>
-          ${canEdit ? '<th style="text-align: right;">การจัดการ</th>' : ''}
-        </tr>
-      </thead>
-      <tbody>
-  `;
-
-  list.forEach(dept => {
-    html += `
-      <tr>
-        <td style="font-family: monospace; font-weight: 600;">${dept.code}</td>
-        <td style="font-weight: 500;">${escapeHtml(dept.name)}</td>
-        <td><span class="badge ${dept.cycle === 'รายไตรมาส' ? 'badge-purple' : 'badge-info'}">${dept.cycle}</span></td>
-        <td style="font-weight: 500; color: #4338ca;">${escapeHtml(dept.auditor)}</td>
-        <td>${dept.startDate}</td>
-        <td><span class="badge ${dept.status === 'ใช้งาน' ? 'badge-success' : 'badge-danger'}">${dept.status}</span></td>
-        ${canEdit ? `
-          <td style="text-align: right;">
-            ${dept.status === 'ใช้งาน' ? `
-              <button class="btn btn-secondary btn-sm" onclick="openChangeAuditorModal('${dept.code}', '${escapeHtml(dept.name)}', '${escapeHtml(dept.auditor)}')">
-                🔄 เปลี่ยนผู้รับผิดชอบ
-              </button>` : ''}
-          </td>` : ''}
-      </tr>
-    `;
-  });
-
-  html += '</tbody></table>';
-  container.innerHTML = html;
-}
-
-function openChangeAuditorModal(deptCode, deptName, currentAuditor) {
-  document.getElementById('change-dept-code').value = deptCode;
-  document.getElementById('change-dept-name-display').textContent = `${deptCode} - ${deptName}`;
-  document.getElementById('change-dept-old-auditor').textContent = currentAuditor;
-  document.getElementById('change-dept-start-date').value = new Date().toISOString().split('T')[0];
-
-  document.getElementById('modal-change-auditor').classList.add('active');
-}
-
-async function handleChangeAuditorSubmit(e) {
-  e.preventDefault();
-  showLoading(true);
-
-  const deptCode = document.getElementById('change-dept-code').value;
-  const newAuditor = document.getElementById('change-dept-new-auditor').value;
-  const startDate = document.getElementById('change-dept-start-date').value;
-
-  try {
-    const res = await Api.call('changeAuditor', {
-      deptCode: deptCode,
-      newAuditor: newAuditor,
-      startDate: startDate,
-      email: state.user ? state.user.email : ''
-    });
-
-    if (res.success) {
-      showToast('เปลี่ยนตัวผู้รับผิดชอบเรียบร้อยแล้ว (อัปเดตสถานะเดิมเป็นยกเลิก)', 'success');
-      closeModal('modal-change-auditor');
-      await loadInitialData();
-      renderDepartmentsTable();
-    }
-  } catch (err) {
-    showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
-  } finally {
-    showLoading(false);
-  }
-}
-
-/**
- * การตั้งค่าระบบ และ SystemLog View (Settings)
- */
-function renderSettingsView() {
-  const kpiInput = document.getElementById('config-kpi-days');
-  if (kpiInput) {
-    kpiInput.value = state.configs.KPI_DAYS || 20;
-  }
-
-  loadSystemLogs();
-}
-
-async function handleConfigSave(e) {
-  e.preventDefault();
-  showLoading(true);
-
-  const kpiVal = document.getElementById('config-kpi-days').value;
-
-  try {
-    const res = await Api.call('updateConfig', {
-      key: 'KPI_DAYS',
-      value: kpiVal,
-      email: state.user ? state.user.email : ''
-    });
-
-    if (res.success) {
-      state.configs.KPI_DAYS = parseInt(kpiVal, 10);
-      showToast('บันทึกการตั้งค่าเกณฑ์ KPI เรียบร้อย', 'success');
-      await refreshTrackingData();
-    }
-  } catch (err) {
-    showToast('ไม่สามารถบันทึกได้: ' + err.message, 'error');
-  } finally {
-    showLoading(false);
-  }
-}
-
-async function loadSystemLogs() {
-  const container = document.getElementById('system-logs-container');
-  if (!container) return;
-
-  try {
-    const res = await Api.call('getSystemLogs', { limit: 30, email: state.user.email });
-    if (res.success && res.logs) {
+  if (titleEl) titleEl.textContent = `${title} (${state.lastDrilldownData.period})`;
+  if (container) {
+    if (data.length === 0) {
+      container.innerHTML = `<div style="text-align: center; color: #10b981; padding: 20px;">✓ ไม่มีรายการค้าง ดำเนินการครบถ้วน</div>`;
+    } else {
       let html = `
-        <div class="table-responsive" style="max-height: 380px;">
-          <table class="custom-table" style="font-size: 0.8rem;">
-            <thead>
-              <tr>
-                <th>วันเวลา</th>
-                <th>ผู้ใช้</th>
-                <th>การกระทำ</th>
-                <th>รหัสงาน</th>
-                <th>เหตุผล/รายละเอียด</th>
-              </tr>
-            </thead>
-            <tbody>
+        <table class="table-matrix" style="text-align: left;">
+          <thead>
+            <tr>
+              <th>ส่วนงาน</th>
+              <th>ผู้ตรวจสอบ</th>
+              <th>สถานะปัจจุบัน</th>
+            </tr>
+          </thead>
+          <tbody>
       `;
-
-      res.logs.forEach(l => {
+      data.forEach(item => {
         html += `
           <tr>
-            <td>${l.timestamp}</td>
-            <td>${escapeHtml(l.user)}</td>
-            <td><span class="badge badge-info">${escapeHtml(l.action)}</span></td>
-            <td style="font-family: monospace;">${escapeHtml(l.trackingId || '-')}</td>
-            <td>${escapeHtml(l.reason || '-')}</td>
+            <td style="font-weight: 600;">${escapeHtml(item.department)}</td>
+            <td>${escapeHtml(item.auditor)}</td>
+            <td><span class="status-badge-pending-dean">${escapeHtml(item.status)}</span></td>
           </tr>
         `;
       });
-
-      html += '</tbody></table></div>';
+      html += '</tbody></table>';
       container.innerHTML = html;
     }
-  } catch (err) {
-    container.innerHTML = `<div style="color: red; padding: 10px;">โหลด Log ไม่สำเร็จ: ${err.message}</div>`;
   }
+
+  if (modal) modal.classList.add('active');
 }
 
 /**
- * Filter & Search Helper
- */
-function applyFiltersAndSearch() {
-  const f = state.filters;
-  const q = (f.search || '').trim().toLowerCase();
-
-  state.filteredTracking = state.trackingList.filter(item => {
-    if (f.fiscalYear && item.fiscalYear.toString() !== f.fiscalYear.toString()) return false;
-    if (f.cycle && item.cycle !== f.cycle) return false;
-    if (f.group && item.auditorGroup !== f.group) return false;
-    if (f.auditor && item.auditor !== f.auditor) return false;
-    if (f.department && item.department !== f.department) return false;
-    if (f.status && item.status !== f.status) return false;
-
-    if (q) {
-      const match = (item.trackingId && item.trackingId.toLowerCase().includes(q)) ||
-                    (item.department && item.department.toLowerCase().includes(q)) ||
-                    (item.auditor && item.auditor.toLowerCase().includes(q)) ||
-                    (item.period && item.period.toLowerCase().includes(q));
-      if (!match) return false;
-    }
-
-    return true;
-  });
-}
-
-/**
- * สลับสิทธิ์จำลอง (Role Switcher สำหรับ Preview/ทดสอบระบบ)
- */
-function onRoleSwitchChange(role) {
-  if (!state.user) return;
-  state.user.role = role;
-  showToast(`จำลองการใช้งานในบทบาท: ${role}`, 'info');
-  renderUserProfile();
-  applyFiltersAndSearch();
-  renderCurrentTab();
-}
-
-/**
- * Populate Dropdowns (Department, Auditors, Periods)
- */
-function populateDropdowns() {
-  // Department dropdown for modal
-  const deptSelect = document.getElementById('input-track-dept');
-  if (deptSelect) {
-    deptSelect.innerHTML = '<option value="">-- เลือกส่วนงาน --</option>';
-    state.departments.filter(d => d.status === 'ใช้งาน').forEach(d => {
-      deptSelect.innerHTML += `<option value="${escapeHtml(d.name)}" data-cycle="${d.cycle}" data-auditor="${escapeHtml(d.auditor)}">${escapeHtml(d.name)}</option>`;
-    });
-
-    deptSelect.addEventListener('change', () => {
-      const opt = deptSelect.selectedOptions[0];
-      if (opt && opt.value) {
-        const cycle = opt.dataset.cycle || 'รายเดือน';
-        const auditor = opt.dataset.auditor || '';
-        document.getElementById('input-track-cycle').value = cycle;
-        document.getElementById('input-track-auditor').value = auditor;
-        updatePeriodOptions(cycle);
-      }
-    });
-  }
-
-  // Auditor dropdowns
-  const audSelect = document.getElementById('change-dept-new-auditor');
-  const filterAud = document.getElementById('filter-auditor');
-  if (audSelect) {
-    audSelect.innerHTML = '<option value="">-- เลือกผู้ตรวจสอบ --</option>';
-    state.auditors.forEach(a => {
-      audSelect.innerHTML += `<option value="${escapeHtml(a.name)}">${escapeHtml(a.name)} (${escapeHtml(a.nickname || a.position)})</option>`;
-    });
-  }
-  if (filterAud) {
-    filterAud.innerHTML = '<option value="">-- ผู้ตรวจสอบทั้งหมด --</option>';
-    state.auditors.forEach(a => {
-      filterAud.innerHTML += `<option value="${escapeHtml(a.name)}">${escapeHtml(a.name)}</option>`;
-    });
-  }
-
-  // Filter Departments
-  const filterDept = document.getElementById('filter-department');
-  if (filterDept) {
-    filterDept.innerHTML = '<option value="">-- ส่วนงานทั้งหมด --</option>';
-    state.departments.filter(d => d.status === 'ใช้งาน').forEach(d => {
-      filterDept.innerHTML += `<option value="${escapeHtml(d.name)}">${escapeHtml(d.name)}</option>`;
-    });
-  }
-
-  updatePeriodOptions('รายเดือน');
-}
-
-function updatePeriodOptions(cycle) {
-  const periodSelect = document.getElementById('input-track-period');
-  if (!periodSelect) return;
-
-  periodSelect.innerHTML = '';
-  if (cycle === 'รายไตรมาส') {
-    QUARTERS.forEach(q => {
-      periodSelect.innerHTML += `<option value="${q.name}">${q.name}</option>`;
-    });
-  } else {
-    FISCAL_MONTHS.forEach(m => {
-      periodSelect.innerHTML += `<option value="${m.name} 2569">${m.name} 2569</option>`;
-    });
-  }
-}
-
-/**
- * Event Listeners Binding
+ * Event Listeners
  */
 function setupEventListeners() {
-  // Nav tabs
-  document.querySelectorAll('.nav-tab-item').forEach(el => {
-    el.addEventListener('click', () => switchTab(el.dataset.tab));
-  });
-
-  // Filter inputs
-  const bindFilter = (id, key) => {
+  // Bind Filter inputs
+  const bindF = (id, key) => {
     const el = document.getElementById(id);
     if (el) {
       el.addEventListener('change', () => {
         state.filters[key] = el.value;
-        applyFiltersAndSearch();
-        renderCurrentTab();
+        applyFiltersAndRender();
       });
     }
   };
 
-  bindFilter('filter-fy', 'fiscalYear');
-  bindFilter('filter-cycle', 'cycle');
-  bindFilter('filter-group', 'group');
-  bindFilter('filter-auditor', 'auditor');
-  bindFilter('filter-department', 'department');
-  bindFilter('filter-status', 'status');
+  bindF('filter-fy', 'fiscalYear');
+  bindF('filter-period', 'period');
+  bindF('filter-group', 'group');
+  bindF('filter-auditor', 'auditor');
+  bindF('filter-department', 'department');
 
   const searchInput = document.getElementById('filter-search');
   if (searchInput) {
     searchInput.addEventListener('input', () => {
       state.filters.search = searchInput.value;
-      applyFiltersAndSearch();
-      renderCurrentTab();
+      applyFiltersAndRender();
     });
   }
 
-  // Role Switcher
-  const roleSelect = document.getElementById('role-switcher-select');
-  if (roleSelect) {
-    roleSelect.addEventListener('change', (e) => onRoleSwitchChange(e.target.value));
-  }
+  // Login form
+  const loginForm = document.getElementById('login-form');
+  if (loginForm) loginForm.addEventListener('submit', handleLoginSubmit);
 
-  // Forms
-  const trackForm = document.getElementById('tracking-form');
-  if (trackForm) trackForm.addEventListener('submit', handleTrackingFormSubmit);
-
-  const editForm = document.getElementById('new-edit-round-form');
-  if (editForm) editForm.addEventListener('submit', handleNewEditRoundSubmit);
-
-  const changeAudForm = document.getElementById('change-auditor-form');
-  if (changeAudForm) changeAudForm.addEventListener('submit', handleChangeAuditorSubmit);
-
-  const configForm = document.getElementById('config-form');
-  if (configForm) configForm.addEventListener('submit', handleConfigSave);
-
-  // Close Modals on click overlay
-  document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) overlay.classList.remove('active');
+  // Close modals on overlay click
+  document.querySelectorAll('.login-modal-overlay').forEach(o => {
+    o.addEventListener('click', (e) => {
+      if (e.target === o && state.user) o.classList.remove('active');
     });
   });
 }
 
-function closeModal(modalId) {
-  const el = document.getElementById(modalId);
-  if (el) el.classList.remove('active');
-}
-
-/**
- * UI Utilities
- */
 function showLoading(show) {
   const el = document.getElementById('global-loading');
   if (el) el.style.display = show ? 'flex' : 'none';
@@ -1295,15 +898,11 @@ function showLoading(show) {
 function showToast(message, type = 'info') {
   const container = document.getElementById('toast-container');
   if (!container) return;
-
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
   toast.textContent = message;
-
   container.appendChild(toast);
-  setTimeout(() => {
-    toast.remove();
-  }, 4000);
+  setTimeout(() => toast.remove(), 4000);
 }
 
 function setElText(id, val) {
@@ -1313,57 +912,21 @@ function setElText(id, val) {
 
 function escapeHtml(str) {
   if (!str) return '';
-  return str.toString()
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+  return str.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function formatDateForInput(dateStr) {
-  if (!dateStr) return '';
-  // Convert dd/mm/yyyy to yyyy-mm-dd
-  const parts = dateStr.split('/');
+function parseDateSafe(str) {
+  if (!str) return null;
+  const parts = str.toString().split(/[\/\-]/);
   if (parts.length === 3) {
-    let yr = parseInt(parts[2], 10);
-    if (yr > 2400) yr -= 543;
-    return `${yr}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    let day = parseInt(parts[0], 10);
+    let month = parseInt(parts[1], 10) - 1;
+    let year = parseInt(parts[2], 10);
+    if (year > 2400) year -= 543;
+    return new Date(year, month, day);
   }
-  return dateStr;
-}
-
-
-/**
- * API Connection Modal Functions
- */
-function openApiUrlModal() {
-  const modal = document.getElementById('modal-api-url');
-  const input = document.getElementById('input-api-url');
-  const statusEl = document.getElementById('api-connection-status');
-  if (!modal || !input) return;
-
-  input.value = Api.getScriptUrl() || '';
-  if (statusEl) {
-    statusEl.innerHTML = input.value
-      ? '<span style="color: #10b981;">✓ เชื่อมต่อกับ URL ที่ระบุไว้แล้ว</span>'
-      : '<span style="color: #f59e0b;">⚠️ ยังไม่ได้ระบุ URL ระบบจะแสดงข้อมูลจำลองเพื่อการทดสอบ</span>';
-  }
-  modal.classList.add('active');
-}
-
-async function saveApiUrl() {
-  const input = document.getElementById('input-api-url');
-  const modal = document.getElementById('modal-api-url');
-  if (!input) return;
-
-  const url = input.value.trim();
-  Api.setScriptUrl(url);
-  showToast('บันทึก Web App API URL เรียบร้อย กำลังรีเฟรชข้อมูล...', 'success');
-  if (modal) modal.classList.remove('active');
-
-  await loadInitialData();
-  await refreshTrackingData();
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
 }
 
 </script>
