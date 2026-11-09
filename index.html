@@ -11,7 +11,7 @@
 </head>
 <body>
 
-  <!-- 1. Header Bar (Clean Pastel Ambient) -->
+  <!-- 1. Header Bar -->
   <header class="app-header">
     <div class="header-inner">
       <div class="brand-wrapper">
@@ -54,7 +54,7 @@
   <!-- 2. Main Workspace -->
   <main class="main-workspace">
 
-    <!-- Filter Bar (อัตโนมัติรอบรายงาน ไม่มี dropdown รอบรายงานตามที่ขอ) -->
+    <!-- Filter Bar (ไม่มี dropdown "รอบรายงาน" เพราะคำนวณอัตโนมัติในตาราง) -->
     <section class="filter-card">
       <div class="filter-fields-wrap">
         
@@ -68,7 +68,7 @@
           </select>
         </div>
 
-        <!-- งวดรายงาน (หัวใจสำคัญในการคำนวณ KPI สรุปผล เช่น เดือนเมษายน) -->
+        <!-- งวดรายงาน -->
         <div class="filter-item">
           <label>งวดรายงานที่ต้องการติดตาม</label>
           <select id="filter-period" class="filter-input-select" style="min-width: 200px; font-weight: 600; color: var(--primary-purple);">
@@ -125,10 +125,10 @@
       </div>
     </section>
 
-    <!-- 3. Dynamic Executive KPI Summary Cards (คำนวณตอบโจทย์เมื่อกรองงวด เช่น เมษายน) -->
+    <!-- 3. Executive KPI Cards Grid (ปรับปรุงตามที่ระบุ) -->
     <section class="metrics-grid">
 
-      <!-- Card 1: สัดส่วนเสร็จสิ้นในงวด -->
+      <!-- Card 1: เสร็จสิ้นเสนออธิการบดีแล้ว -->
       <div class="metric-card alert-card-emerald">
         <div class="metric-card-top">
           <div class="metric-card-title">
@@ -143,7 +143,7 @@
         </div>
       </div>
 
-      <!-- Card 2: ค้างยังไม่ได้เสนอ ผอ. (คลิก Drilldown ได้) -->
+      <!-- Card 2: ค้างยังไม่ได้เสนอ ผอ. (คลิก Drilldown ดูรายชื่อได้) -->
       <div class="metric-card alert-card-amber" style="cursor: pointer;" onclick="openListDrilldown('dean')" title="คลิกเพื่อดูรายชื่อส่วนงานที่ค้าง">
         <div class="metric-card-top">
           <div class="metric-card-title">
@@ -158,30 +158,30 @@
         </div>
       </div>
 
-      <!-- Card 3: ยังไม่ได้เสนออธิการบดี (คลิก Drilldown ได้) -->
-      <div class="metric-card alert-card-rose" style="cursor: pointer;" onclick="openListDrilldown('president')" title="คลิกเพื่อดูรายชื่อส่วนงานที่ยังไม่เสนออธิการบดี">
+      <!-- Card 3 (เพิ่มใหม่): แจ้งเตือนส่วนงานที่ยังไม่เสนอ ผอ. เมื่อถึงวันที่ 18 (เกณฑ์ 20 วัน) -->
+      <div class="metric-card alert-card-rose" style="cursor: pointer;" onclick="openListDrilldown('day18')" title="คลิกดูรายชื่อส่วนงานที่ใกล้ครบ 20 วัน (ถึงวันที่ 18 เป็นต้นไป)">
         <div class="metric-card-top">
-          <div class="metric-card-title">
-            ยังไม่ได้เสนออธิการบดี
-            <div style="font-size: 0.7rem; color: #e11d48; font-weight: 500;">(คลิกดูรายชื่อ 🔍)</div>
+          <div class="metric-card-title" style="color: #be123c;">
+            ⚠️ แจ้งเตือนถึงวันที่ 18
+            <div style="font-size: 0.7rem; color: #e11d48; font-weight: 500;">(ใกล้ครบ 20 วัน คลิกดูรายชื่อ 🔍)</div>
           </div>
-          <div class="metric-icon-bubble metric-icon-rose">🏛️</div>
+          <div class="metric-icon-bubble metric-icon-rose">🚨</div>
         </div>
-        <div class="metric-big-number" id="kpi-pending-president" style="color: #e11d48;">0</div>
+        <div class="metric-big-number" id="kpi-alert-day18" style="color: #e11d48;">0</div>
         <div class="metric-sub-note">
-          อยู่ระหว่างตรวจ / ผอ.พิจารณา / แก้ไข
+          ส่วนงานที่รับงบแล้ว $\ge$ 18 วัน แต่ยังไม่เสนอ ผอ.
         </div>
       </div>
 
-      <!-- Card 4: ระยะเวลาเฉลี่ยรับงบถึงเสนออธิการบดี -->
+      <!-- Card 4: ระยะเวลาเฉลี่ยรับงบ - เสนอ ผอ. (ปรับปรุงใหม่ตามที่ขอ) -->
       <div class="metric-card">
         <div class="metric-card-top">
-          <div class="metric-card-title">ระยะเวลาเฉลี่ย<br>รับงบถึงเสนออธิการบดี</div>
+          <div class="metric-card-title">ระยะเวลาเฉลี่ย<br>รับงบ - เสนอ ผอ.</div>
           <div class="metric-icon-bubble metric-icon-purple">⏱️</div>
         </div>
-        <div class="metric-big-number" id="kpi-avg-days-president">-</div>
+        <div class="metric-big-number" id="kpi-avg-days-dean" style="color: var(--primary-purple);">-</div>
         <div class="metric-sub-note">
-          เฉลี่ยต่อรายงานที่เสร็จสิ้น
+          เกณฑ์มาตรฐาน: ไม่เกิน 20 วันปฏิทิน
         </div>
       </div>
 
@@ -219,7 +219,7 @@
             <span>📋</span> ตารางติดตามงบการเงินรายส่วนงาน ประจำปีงบประมาณ (ต.ค. - ก.ย.)
           </h2>
           <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">
-            คลิกที่แถวส่วนงานหรือสัญลักษณ์ในแต่ละเดือน เพื่อเปิดดูรายละเอียดเชิงลึก (Drilldown) และการดำเนินงาน
+            คลิกที่แถวส่วนงานหรือช่องเดือน เพื่อดูรายละเอียดเชิงลึก (Drilldown) หรือแก้ไข/บันทึกข้อมูลวันที่เพิ่มเติม
           </p>
         </div>
 
@@ -300,6 +300,13 @@
 
     <div class="drawer-body">
 
+      <!-- ปุ่มแก้ไขข้อมูลวันที่เพิ่มเติม (สำหรับกรณีที่กรอกยังไม่ครบทุกช่อง) -->
+      <div style="display: flex; gap: 10px; margin-bottom: 6px;">
+        <button class="btn-primary-purple" style="flex: 1; justify-content: center; padding: 8px 14px;" onclick="openEditTrackingDatesModal()">
+          ✏️ บันทึก / แก้ไขข้อมูลวันที่เพิ่มเติม
+        </button>
+      </div>
+
       <!-- Timeline ก้าวหน้า -->
       <div>
         <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-title); margin-bottom: 12px;">
@@ -360,17 +367,24 @@
 
       <hr style="border: 0; border-top: 1px solid var(--border-light);">
 
-      <!-- สถิติการแก้ไข -->
+      <!-- ส่วนประวัติการส่งกลับแก้ไข พร้อมปุ่มสำหรับ ผอ. -->
       <div>
-        <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-title); margin-bottom: 8px;">
-          🔄 ประวัติการส่งกลับแก้ไขรายงาน
-        </h4>
-        <div id="drill-edit-info" style="font-size: 0.88rem; color: var(--text-muted); background: var(--purple-50); padding: 12px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-title);">
+            🔄 ประวัติการส่งกลับแก้ไขรายงาน
+          </h4>
+          <!-- ปุ่มเปิด Modal จัดการรอบการแก้ไขสำหรับ ผอ. -->
+          <button id="btn-dean-open-edit-rounds" class="btn-secondary-white" style="font-size: 0.78rem; padding: 4px 10px; color: #7c3aed; border-color: #d8b4fe;" onclick="openManageEditsModal()">
+            🔄 ผอ. ส่งกลับแก้ไข / บันทึกรอบ
+          </button>
+        </div>
+
+        <div id="drill-edit-rounds-list" style="font-size: 0.85rem; color: var(--text-muted); background: var(--purple-50); padding: 12px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
           ไม่มีประวัติการส่งกลับแก้ไข
         </div>
       </div>
 
-      <!-- Action ของ ผอ. (Dean Workflow) -->
+      <!-- Action การเห็นชอบและเสนออธิการบดีของ ผอ. -->
       <div id="drill-dean-actions" style="background: #fdf4ff; border: 1px solid #f5d0fe; padding: 16px; border-radius: var(--radius-sm); display: none;">
         <h4 style="font-size: 0.9rem; font-weight: 700; color: #86198f; margin-bottom: 10px;">
           ⚖️ การพิจารณาของผู้อำนวยการ (Dean Action)
@@ -388,39 +402,181 @@
     </div>
   </aside>
 
-  <!-- Modal: Drilldown แสดงรายชื่อส่วนงานค้างส่ง (Dean / President) -->
-  <div id="modal-list-drilldown" class="login-modal-overlay">
-    <div class="login-card-box" style="max-width: 640px; text-align: left;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3 id="drilldown-list-title" style="font-size: 1.15rem; font-weight: 700; color: var(--text-title);">รายชื่อส่วนงาน</h3>
-        <button class="modal-close" onclick="document.getElementById('modal-list-drilldown').classList.remove('active')">&times;</button>
+  <!-- Modal 1: บันทึก / แก้ไขข้อมูลวันที่เพิ่มเติม (สำหรับกรอกยังไม่ครบทุกช่อง) -->
+  <div id="modal-edit-tracking" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-box-header">
+        <h3 id="modal-edit-track-title">บันทึก / แก้ไขข้อมูลงบการเงิน</h3>
+        <button class="modal-close" onclick="closeModal('modal-edit-tracking')">&times;</button>
       </div>
-      <div id="drilldown-list-content" style="max-height: 380px; overflow-y: auto;">
-        <!-- Injected table -->
+      <form id="form-edit-tracking">
+        <div class="modal-box-body">
+          <input type="hidden" id="edit-track-id">
+          <input type="hidden" id="edit-track-fy">
+          <input type="hidden" id="edit-track-period">
+          <input type="hidden" id="edit-track-dept">
+          <input type="hidden" id="edit-track-cycle">
+          <input type="hidden" id="edit-track-auditor">
+
+          <div style="background: var(--purple-50); border: 1px solid var(--border-light); padding: 12px 16px; border-radius: var(--radius-sm);">
+            <div style="font-size: 1rem; font-weight: 700; color: var(--text-title);" id="edit-display-dept">คณะ/ส่วนงาน</div>
+            <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">
+              งวด: <strong id="edit-display-period" style="color: var(--primary-purple);">-</strong> | 
+              ปีงบประมาณ: <strong id="edit-display-fy">-</strong> | 
+              ผู้รับผิดชอบ: <strong id="edit-display-auditor">-</strong>
+            </div>
+          </div>
+
+          <div class="form-group-wrap">
+            <div class="form-field">
+              <label>1. วันที่ได้รับงบจากส่วนงาน (งานสารบรรณ)</label>
+              <input type="date" id="input-edit-date-dept" class="form-input">
+            </div>
+
+            <div class="form-field">
+              <label>2. วันที่ผู้ตรวจสอบได้รับงบ (เริ่มนับ KPI 20 วัน)</label>
+              <input type="date" id="input-edit-date-auditor" class="form-input">
+            </div>
+          </div>
+
+          <div class="form-group-wrap">
+            <div class="form-field">
+              <label>3. วันที่เสนอรายงานให้หัวหน้ากลุ่มงาน</label>
+              <input type="date" id="input-edit-date-leader" class="form-input">
+            </div>
+
+            <div class="form-field">
+              <label>4. วันที่เสนอรายงานให้ผู้อำนวยการ (สิ้นสุด KPI 20 วัน)</label>
+              <input type="date" id="input-edit-date-dean" class="form-input">
+            </div>
+          </div>
+
+          <div class="form-group-wrap">
+            <div class="form-field">
+              <label>5. วันที่ผู้อำนวยการเห็นชอบรายงานฉบับสมบูรณ์</label>
+              <input type="date" id="input-edit-date-approved" class="form-input">
+            </div>
+
+            <div class="form-field">
+              <label>6. วันที่เสนอรายงานต่ออธิการบดี (เสร็จสิ้น)</label>
+              <input type="date" id="input-edit-date-president" class="form-input">
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-box-footer">
+          <button type="button" class="btn-secondary-white" onclick="closeModal('modal-edit-tracking')">ยกเลิก</button>
+          <button type="submit" class="btn-primary-purple">บันทึกข้อมูลลง Google Sheets</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 2: ผอ. ส่งกลับแก้ไข & เพิ่มการแก้ไข (ครั้งที่ 2, 3, 4...) -->
+  <div id="modal-manage-edits" class="modal-overlay">
+    <div class="modal-box" style="max-width: 740px;">
+      <div class="modal-box-header">
+        <h3 id="modal-manage-edits-title">การส่งกลับแก้ไขรายงาน (โดยผู้อำนวยการ)</h3>
+        <button class="modal-close" onclick="closeModal('modal-manage-edits')">&times;</button>
+      </div>
+      <div class="modal-box-body">
+
+        <!-- ตารางประวัติรอบการแก้ไข -->
+        <div>
+          <h4 style="font-size: 0.92rem; font-weight: 700; color: var(--text-title); margin-bottom: 8px;">
+            ประวัติการแก้ไขที่ผ่านมา
+          </h4>
+          <div id="manage-edits-table-container" style="max-height: 220px; overflow-y: auto;">
+            <!-- Rounds table -->
+          </div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-light); margin: 6px 0;">
+
+        <!-- ฟอร์มเพิ่มการแก้ไขรอบใหม่ หรือ อัปเดตส่งคืน -->
+        <div>
+          <h4 id="new-edit-round-title" style="font-size: 0.95rem; font-weight: 700; color: var(--primary-purple); margin-bottom: 12px;">
+            ➕ บันทึกการส่งกลับแก้ไขรอบใหม่
+          </h4>
+
+          <form id="form-add-edit-round">
+            <input type="hidden" id="edit-round-track-id">
+            <input type="hidden" id="edit-round-id">
+
+            <div class="form-group-wrap">
+              <div class="form-field">
+                <label>วันที่ผู้อำนวยการส่งกลับแก้ไข <span style="color: red;">*</span></label>
+                <input type="date" id="input-round-date-returned" class="form-input" required>
+              </div>
+
+              <div class="form-field">
+                <label>วันที่ผู้ตรวจสอบส่งที่แก้ไขกลับมา (ถ้าส่งแล้ว)</label>
+                <input type="date" id="input-round-date-resubmitted" class="form-input">
+              </div>
+            </div>
+
+            <div class="form-field" style="margin-top: 12px;">
+              <label>หมายเหตุ / ประเด็นข้อสังเกตที่ให้แก้ไข</label>
+              <textarea id="input-round-note" class="form-input" rows="3" placeholder="ระบุประเด็นหรือข้อสั่งการแก้ไขจาก ผอ. ..."></textarea>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+              <button type="submit" class="btn-primary-purple">
+                บันทึกรอบการแก้ไขลง Google Sheets
+              </button>
+            </div>
+          </form>
+        </div>
+
+      </div>
+      <div class="modal-box-footer">
+        <button type="button" class="btn-secondary-white" onclick="closeModal('modal-manage-edits')">ปิดหน้าต่าง</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal: Login ยืนยันตัวตนด้วย Gmail (กำหนดสิทธิ์จริงจากชีท ผู้ตรวจสอบ) -->
-  <div id="modal-login" class="login-modal-overlay">
-    <div class="login-card-box">
-      <div class="login-logo-box">🔒</div>
-      <h2>เข้าสู่ระบบตรวจสอบงบการเงิน</h2>
-      <p>กรุณาระบุบัญชี Google Mail / CMU Account ของท่านเพื่อยืนยันตัวตนและรับสิทธิ์ตามทะเบียนในระบบ</p>
+  <!-- Modal 3: Drilldown แสดงรายชื่อส่วนงานค้างส่ง (Dean / Alert 18 วัน) -->
+  <div id="modal-list-drilldown" class="modal-overlay">
+    <div class="modal-box" style="max-width: 680px;">
+      <div class="modal-box-header">
+        <h3 id="drilldown-list-title">รายชื่อส่วนงาน</h3>
+        <button class="modal-close" onclick="closeModal('modal-list-drilldown')">&times;</button>
+      </div>
+      <div class="modal-box-body" id="drilldown-list-content" style="max-height: 420px; overflow-y: auto;">
+        <!-- Injected table -->
+      </div>
+      <div class="modal-box-footer">
+        <button type="button" class="btn-secondary-white" onclick="closeModal('modal-list-drilldown')">ปิด</button>
+      </div>
+    </div>
+  </div>
 
-      <form id="login-form">
-        <input type="email" id="login-email-input" class="login-form-input" placeholder="ระบุอีเมล เช่น user@cmu.ac.th หรือ amornrath.f@gmail.com" required>
-        
-        <div id="login-error-msg" style="display: none; color: #dc2626; font-size: 0.8rem; background: #fef2f2; padding: 10px; border-radius: 8px; margin-bottom: 14px; text-align: left;">
+  <!-- Modal 4: Login ยืนยันตัวตนด้วย Gmail (กำหนดสิทธิ์จริงจากชีท ผู้ตรวจสอบ) -->
+  <div id="modal-login" class="modal-overlay">
+    <div class="modal-box" style="max-width: 460px; text-align: center;">
+      <div style="padding: 36px 30px;">
+        <div style="width: 58px; height: 58px; border-radius: 16px; background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: #fff; font-size: 26px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; box-shadow: 0 8px 20px rgba(124, 58, 237, 0.3);">
+          🔒
         </div>
+        <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--text-title); margin-bottom: 6px;">เข้าสู่ระบบตรวจสอบงบการเงิน</h2>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">
+          กรุณาระบุบัญชี Google Mail / CMU Account ของท่านเพื่อยืนยันตัวตนและรับสิทธิ์ตามชีทผู้ตรวจสอบ
+        </p>
 
-        <button type="submit" class="btn-primary-purple" style="width: 100%; justify-content: center; padding: 12px;">
-          ยืนยันการเข้าสู่ระบบ
-        </button>
-      </form>
+        <form id="login-form">
+          <input type="email" id="login-email-input" class="form-input" style="padding: 12px; margin-bottom: 12px; text-align: center;" placeholder="เช่น user@cmu.ac.th หรือ amornrath.f@gmail.com" required>
+          
+          <div id="login-error-msg" style="display: none; color: #dc2626; font-size: 0.8rem; background: #fef2f2; padding: 10px; border-radius: 8px; margin-bottom: 14px; text-align: left;">
+          </div>
 
-      <div style="margin-top: 18px; font-size: 0.76rem; color: var(--text-muted); line-height: 1.4;">
-        ℹ️ ระบบจะตรวจสอบอีเมลของท่านกับชีท <strong>"ผู้ตรวจสอบ"</strong> คอลัมน์ G เพื่อกำหนดบทบาท (Dean, Leader, User, Admin) และกลุ่มงานโดยอัตโนมัติ
+          <button type="submit" class="btn-primary-purple" style="width: 100%; justify-content: center; padding: 12px;">
+            ยืนยันการเข้าสู่ระบบ
+          </button>
+        </form>
+
+        <div style="margin-top: 18px; font-size: 0.76rem; color: var(--text-muted); line-height: 1.4;">
+          ℹ️ ระบบจะตรวจสอบอีเมลกับชีท <strong>"ผู้ตรวจสอบ"</strong> คอลัมน์ G เพื่อกำหนดบทบาท (Dean, Leader, User, Admin) และกลุ่มงานโดยอัตโนมัติ
+        </div>
       </div>
     </div>
   </div>
@@ -429,7 +585,7 @@
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Global Loading -->
-  <div id="global-loading" class="login-modal-overlay" style="background: rgba(255, 255, 255, 0.7); z-index: 300;">
+  <div id="global-loading" class="modal-overlay" style="background: rgba(255, 255, 255, 0.7); z-index: 300;">
     <div style="background: #ffffff; padding: 22px 34px; border-radius: 16px; box-shadow: var(--shadow-dropdown); display: flex; align-items: center; gap: 14px; border: 1px solid var(--border-light);">
       <div style="font-size: 1.8rem; animation: spin 1s linear infinite;">⏳</div>
       <div style="font-weight: 600; color: var(--text-title);">กำลังเชื่อมต่อ Google Sheets แบบ Real-time...</div>
