@@ -12,7 +12,8 @@ const SHEETS = {
   TRACKING: 'Tracking',
   EDIT: 'Edit',
   CONFIG: 'Config',
-  SYSTEM_LOG: 'SystemLog'
+  SYSTEM_LOG: 'SystemLog',
+  OFFICE: 'Office'
 };
 
 /**
@@ -117,6 +118,10 @@ function handleApiRequest(action, data) {
       return changeDepartmentAuditor(data.deptCode, data.newAuditor, data.startDate, data.email);
     case 'updateConfig':
       return updateConfig(data.key, data.value, data.email);
+    case 'saveOfficeAttendance':
+      return saveOfficeAttendance(data.officeData, data.email);
+    case 'getOfficeAttendance':
+      return getOfficeAttendance(data.date, data.email);
     case 'getSystemLogs':
       return getSystemLogs(data.limit, data.email);
     default:
@@ -1085,3 +1090,89 @@ function parseDateInput(str) {
   const d = new Date(str);
   return isNaN(d.getTime()) ? str : d;
 }
+
+/* =========================================================================
+ * 8. ระบบบันทึกข้อมูลการปฏิบัติงาน (Office Attendance)
+ * ========================================================================= */
+
+/**
+ * บันทึกการเข้างานลงชีท Office
+ * Cols: A:รหัส, B:วัน/เดือน/ปี, C:ภาค, D:การทำงาน
+ */
+function saveOfficeAttendance(officeData, email) {
+  const profile = getUserProfile(email);
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(SHEETS.OFFICE);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEETS.OFFICE);
+    sheet.appendRow(['รหัส', 'วัน/เดือน/ปี', 'ภาค', 'การทำงาน']);
+  }
+
+  const userCode = officeData.userCode || profile.code || profile.nickname || 'Unknown';
+  const dateStr = formatDateDisplay(officeData.date) || officeData.date;
+  const session = (officeData.session || 'เช้า').trim();
+  const workType = (officeData.workType || 'เข้า Office').trim();
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+
+  try {
+    const data = sheet.getDataRange().getValues();
+    let foundRow = -1;
+
+    for (let i = 1; i < data.length; i++) {
+      const rowCode = (data[i][0] || '').toString().trim();
+      const rowDate = formatDateDisplay(data[i][1]);
+      const rowSession = (data[i][2] || '').toString().trim();
+      if (rowCode === userCode && rowDate === dateStr && rowSession === session) {
+        foundRow = i + 1;
+        break;
+      }
+    }
+
+    if (foundRow !== -1) {
+      sheet.getRange(foundRow, 4).setValue(workType);
+    } else {
+      sheet.appendRow([userCode, dateStr, session, workType]);
+    }
+
+    return {
+      success: true,
+      userCode: userCode,
+      date: dateStr,
+      session: session,
+      workType: workType
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * ดึงข้อมูลการเข้างานจากชีท Office
+ */
+function getOfficeAttendance(dateStr, email) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEETS.OFFICE);
+  if (!sheet) return { success: true, data: [] };
+
+  const data = sheet.getDataRange().getValues();
+  const list = [];
+  const targetDate = dateStr ? formatDateDisplay(dateStr) : '';
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const dStr = formatDateDisplay(row[1]);
+    if (!targetDate || dStr === targetDate) {
+      list.push({
+        code: row[0],
+        date: dStr,
+        session: row[2],
+        workType: row[3]
+      });
+    }
+  }
+
+  return { success: true, data: list };
+}
+
