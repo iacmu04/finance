@@ -325,245 +325,235 @@
     <!-- VIEW 1: HOME DASHBOARD (ตามภาพแรก) -->
     <main id="view-home" class="p-2 sm:p-4 pt-2 flex flex-col gap-4">
       
-      <!-- Top Grid: Calendar + Attendance By Team + Today's Summary & Finance Gauge -->
-      <div class="grid grid-cols-12 gap-4">
+      <!-- SECTION 1: Full-width Calendar & Attendance Roster -->
+      <div class="w-full bg-white rounded-2xl p-4 sm:p-5 card-shadow border border-slate-100 flex flex-col justify-between">
         
-        <!-- Left & Center: Calendar & Attendance Matrix (Cols 1-9) -->
-        <div class="col-span-12 xl:col-span-9 bg-white rounded-2xl p-4 sm:p-5 card-shadow border border-slate-100 flex flex-col justify-between">
-          
-          <div class="flex flex-wrap items-center justify-between gap-3 mb-4 border-b border-slate-100 pb-3">
-            <!-- ปฏิทิน: ลบข้อความยาว เหลือแค่เดือน/ปี พร้อมตัวเลือกเดือน/ปี -->
-            <div class="flex items-center gap-2 flex-wrap">
-              <div class="flex items-center gap-1.5 bg-brand-50 text-brand-700 px-3 py-1.5 rounded-xl border border-brand-100">
-                <span class="text-base">📅</span>
-                <span id="current-month-year-title" class="text-xs sm:text-sm font-bold">พฤศจิกายน 2569</span>
-              </div>
-
-              <!-- Month and Year Dropdowns -->
-              <div class="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 text-xs">
-                <select id="calendar-select-month" onchange="onCalendarMonthYearChange()" class="bg-transparent text-slate-700 font-semibold focus:outline-none cursor-pointer">
-                  <option value="0">มกราคม</option>
-                  <option value="1">กุมภาพันธ์</option>
-                  <option value="2">มีนาคม</option>
-                  <option value="3">เมษายน</option>
-                  <option value="4">พฤษภาคม</option>
-                  <option value="5">มิถุนายน</option>
-                  <option value="6">กรกฎาคม</option>
-                  <option value="7">สิงหาคม</option>
-                  <option value="8">กันยายน</option>
-                  <option value="9">ตุลาคม</option>
-                  <option value="10">พฤศจิกายน</option>
-                  <option value="11">ธันวาคม</option>
-                </select>
-                <select id="calendar-select-year" onchange="onCalendarMonthYearChange()" class="bg-transparent text-slate-700 font-semibold focus:outline-none cursor-pointer">
-                  <option value="2568">2568</option>
-                  <option value="2569">2569</option>
-                  <option value="2570">2570</option>
-                  <option value="2571">2571</option>
-                  <option value="2572">2572</option>
-                </select>
-              </div>
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4 border-b border-slate-100 pb-3">
+          <!-- ปฏิทิน: เดือน/ปี พร้อมตัวเลือกเดือน/ปี -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex items-center gap-1.5 bg-brand-50 text-brand-700 px-3 py-1.5 rounded-xl border border-brand-100">
+              <span class="text-base">📅</span>
+              <span id="current-month-year-title" class="text-xs sm:text-sm font-bold">พฤศจิกายน 2569</span>
             </div>
 
-            <!-- Legend & Compact Action Button -->
-            <div class="flex flex-wrap items-center gap-3 text-xs">
-              <div class="flex items-center gap-1">
-                <span class="status-dot bg-status-office"></span>
-                <span class="text-slate-600">Office</span>
-              </div>
-              <div class="flex items-center gap-1">
-                <span class="status-dot bg-status-wfa"></span>
-                <span class="text-slate-600">WFA/ประชุม</span>
-              </div>
-              <div class="flex items-center gap-1">
-                <span class="status-dot bg-status-leave"></span>
-                <span class="text-slate-600">ลา</span>
-              </div>
-              <button onclick="openAttendanceModal()" class="px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-medium transition-all shadow-sm flex items-center gap-1.5 whitespace-nowrap">
-                <span>+</span> บันทึกสถานะการเข้างาน
-              </button>
+            <!-- Month and Year Dropdowns -->
+            <div class="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 text-xs">
+              <select id="calendar-select-month" onchange="onCalendarMonthYearChange()" class="bg-transparent text-slate-700 font-semibold focus:outline-none cursor-pointer">
+                <option value="0">มกราคม</option>
+                <option value="1">กุมภาพันธ์</option>
+                <option value="2">มีนาคม</option>
+                <option value="3">เมษายน</option>
+                <option value="4">พฤษภาคม</option>
+                <option value="5">มิถุนายน</option>
+                <option value="6">กรกฎาคม</option>
+                <option value="7">สิงหาคม</option>
+                <option value="8">กันยายน</option>
+                <option value="9">ตุลาคม</option>
+                <option value="10">พฤศจิกายน</option>
+                <option value="11">ธันวาคม</option>
+              </select>
+              <select id="calendar-select-year" onchange="onCalendarMonthYearChange()" class="bg-transparent text-slate-700 font-semibold focus:outline-none cursor-pointer">
+                <option value="2568">2568</option>
+                <option value="2569">2569</option>
+                <option value="2570">2570</option>
+                <option value="2571">2571</option>
+                <option value="2572">2572</option>
+              </select>
             </div>
           </div>
 
-          <!-- Split: Calendar Left (58%) vs Attendance List Right (42%) -->
-          <div class="grid grid-cols-12 gap-5">
-            
-            <!-- Calendar Grid (7 cols) -->
-            <div class="col-span-12 md:col-span-7">
-              <div class="grid grid-cols-7 text-center text-xs font-semibold text-slate-500 mb-2">
-                <div class="py-1"><span class="sm:hidden">จ.</span><span class="hidden sm:inline">จันทร์</span></div>
-                <div class="py-1"><span class="sm:hidden">อ.</span><span class="hidden sm:inline">อังคาร</span></div>
-                <div class="py-1"><span class="sm:hidden">พ.</span><span class="hidden sm:inline">พุธ</span></div>
-                <div class="py-1"><span class="sm:hidden">พฤ.</span><span class="hidden sm:inline">พฤหัส</span></div>
-                <div class="py-1"><span class="sm:hidden">ศ.</span><span class="hidden sm:inline">ศุกร์</span></div>
-                <div class="py-1 text-slate-400"><span class="sm:hidden">ส.</span><span class="hidden sm:inline">เสาร์</span></div>
-                <div class="py-1 text-slate-400"><span class="sm:hidden">อา.</span><span class="hidden sm:inline">อาทิตย์</span></div>
-              </div>
-              
-              <div id="calendar-days-container" class="grid grid-cols-7 gap-1 text-xs">
-                <!-- Days generated by JS -->
-              </div>
+          <!-- Legend & Compact Action Button -->
+          <div class="flex flex-wrap items-center gap-3 text-xs">
+            <div class="flex items-center gap-1">
+              <span class="status-dot bg-status-office"></span>
+              <span class="text-slate-600">Office</span>
             </div>
-
-            <!-- Attendance By Department / Team (5 cols) -->
-            <div class="col-span-12 md:col-span-5 border-l border-slate-100 pl-4 flex flex-col justify-between">
-              <div>
-                <div class="flex items-center justify-between text-xs font-semibold text-slate-500 pb-2 mb-2 border-b border-slate-100">
-                  <span id="attendance-roster-title">รายชื่อบุคลากร (แยกตามกลุ่มงาน)</span>
-                  <div class="flex items-center gap-4 pr-1">
-                    <span class="text-brand-600 font-medium">เช้า</span>
-                    <span class="text-brand-600 font-medium">บ่าย</span>
-                  </div>
-                </div>
-
-                <div id="attendance-list-container" class="space-y-3 max-h-[380px] overflow-y-auto pr-1">
-                  <!-- Populated dynamically from Sheet ผู้ตรวจสอบ (Col C, E) + Sheet Office -->
-                </div>
-              </div>
-
-              <!-- Note on permission -->
-              <div class="text-[11px] text-slate-400 bg-slate-50 p-2 rounded-lg mt-3 flex items-center justify-between">
-                <span id="role-view-notice">มุมมองผู้บริหาร: แสดงบุคลากรทุกกลุ่มงาน</span>
-                <span class="text-brand-600 font-medium cursor-pointer" onclick="openAttendanceModal()">+ บันทึกของฉัน</span>
-              </div>
+            <div class="flex items-center gap-1">
+              <span class="status-dot bg-status-wfa"></span>
+              <span class="text-slate-600">WFA/ประชุม</span>
             </div>
-
-          </div>
-        </div>
-
-        <!-- Right Side: 2 Cards (Cols 10-12) -->
-        <div class="col-span-12 xl:col-span-3 flex flex-col gap-4">
-          
-          <!-- Card 1: สรุปสถานะคนเข้างานวันนี้ -->
-          <div class="bg-white rounded-2xl p-5 card-shadow border border-slate-100 flex-1 flex flex-col justify-between">
-            <div>
-              <div class="flex items-center justify-between mb-3">
-                <div class="flex items-center gap-2">
-                  <span class="p-1.5 rounded-lg bg-purple-50 text-brand-600">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                  </span>
-                  <h3 id="summary-card-title" class="text-sm font-semibold text-slate-800">สรุปการเข้างานวันนี้</h3>
-                </div>
-                <div class="flex items-center gap-3 text-xs font-semibold text-brand-600">
-                  <span>เช้า</span>
-                  <span>บ่าย</span>
-                </div>
-              </div>
-
-              <div class="space-y-2.5 text-xs">
-                <div class="flex items-center justify-between py-1 border-b border-slate-50">
-                  <div class="flex items-center gap-2">
-                    <span class="status-dot bg-status-office"></span>
-                    <span class="text-slate-600">ทำงานใน Office</span>
-                  </div>
-                  <div class="flex items-center gap-6 font-bold text-slate-700">
-                    <span id="stat-office-am" class="w-4 text-center">12</span>
-                    <span id="stat-office-pm" class="w-4 text-center">16</span>
-                  </div>
-                </div>
-
-                <div class="flex items-center justify-between py-1 border-b border-slate-50">
-                  <div class="flex items-center gap-2">
-                    <span class="status-dot bg-status-leave"></span>
-                    <span class="text-slate-600">ลา</span>
-                  </div>
-                  <div class="flex items-center gap-6 font-bold text-slate-700">
-                    <span id="stat-leave-am" class="w-4 text-center">2</span>
-                    <span id="stat-leave-pm" class="w-4 text-center">2</span>
-                  </div>
-                </div>
-
-                <div class="flex items-center justify-between py-1 border-b border-slate-50">
-                  <div class="flex items-center gap-2">
-                    <span class="status-dot bg-brand-400"></span>
-                    <span class="text-slate-600">ประชุม / อบรม</span>
-                  </div>
-                  <div class="flex items-center gap-6 font-bold text-slate-700">
-                    <span id="stat-train-am" class="w-4 text-center">4</span>
-                    <span id="stat-train-pm" class="w-4 text-center">-</span>
-                  </div>
-                </div>
-
-                <div class="flex items-center justify-between py-1">
-                  <div class="flex items-center gap-2">
-                    <span class="status-dot bg-status-wfa"></span>
-                    <span class="text-slate-600">WFA</span>
-                  </div>
-                  <div class="flex items-center gap-6 font-bold text-slate-700">
-                    <span id="stat-wfa-am" class="w-4 text-center">1</span>
-                    <span id="stat-wfa-pm" class="w-4 text-center">1</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Mini Progress bar -->
-              <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3 flex">
-                <div class="bg-status-office h-full" style="width: 70%"></div>
-                <div class="bg-status-wfa h-full" style="width: 15%"></div>
-                <div class="bg-status-leave h-full" style="width: 15%"></div>
-              </div>
+            <div class="flex items-center gap-1">
+              <span class="status-dot bg-status-leave"></span>
+              <span class="text-slate-600">ลา</span>
             </div>
-
-            <div class="text-[11px] text-emerald-600 font-medium text-right mt-2 flex items-center justify-end gap-1">
-              <span>↑ 33% จากสัปดาห์ก่อน</span>
-            </div>
-          </div>
-
-          <!-- Card 2: สรุปรายงานงบการเงิน (Semi-circle Gauge) -->
-          <div class="bg-white rounded-2xl p-5 card-shadow border border-slate-100 flex-1 flex flex-col justify-between">
-            <div>
-              <div class="flex items-center justify-between mb-2">
-                <h3 class="text-sm font-semibold text-slate-800">รายงานงบการเงิน</h3>
-                <span class="text-xs text-slate-400 bg-slate-50 px-2 py-0.5 rounded">Jan 2025 ▾</span>
-              </div>
-
-              <!-- Gauge Chart Container -->
-              <div class="py-2 flex flex-col items-center justify-center">
-                <div style="width: 170px; height: 95px; position: relative;">
-                  <canvas id="financeGaugeChart"></canvas>
-                </div>
-              </div>
-
-              <!-- Legend & Percentages -->
-              <div class="space-y-1.5 text-xs mt-1">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded bg-brand-500"></span>
-                    <span class="text-slate-600">เสร็จสิ้น (เสนออธิการบดี)</span>
-                  </div>
-                  <span id="gauge-stat-complete" class="font-bold text-slate-700">59.5%</span>
-                </div>
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded bg-amber-400"></span>
-                    <span class="text-slate-600">ระหว่างดำเนินการ</span>
-                  </div>
-                  <span id="gauge-stat-process" class="font-bold text-slate-700">24.4%</span>
-                </div>
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded bg-blue-500"></span>
-                    <span class="text-slate-600">รอเอกสาร</span>
-                  </div>
-                  <span id="gauge-stat-pending" class="font-bold text-slate-700">16.1%</span>
-                </div>
-              </div>
-            </div>
-
-            <button onclick="navigate('finance')" class="w-full mt-3 py-1.5 text-xs text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-lg font-medium transition-all text-center">
-              เปิดดูตารางติดตาม 41 ส่วนงาน →
+            <button onclick="openAttendanceModal()" class="px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-medium transition-all shadow-sm flex items-center gap-1.5 whitespace-nowrap">
+              <span>+</span> บันทึกสถานะการเข้างาน
             </button>
           </div>
-
         </div>
 
+        <!-- Split: Calendar Left (7 cols on lg) vs Attendance List Right (5 cols on lg) -->
+        <div class="grid grid-cols-12 gap-5">
+          
+          <!-- Calendar Grid (7 cols) -->
+          <div class="col-span-12 lg:col-span-7">
+            <div class="grid grid-cols-7 text-center text-xs font-semibold text-slate-500 mb-2">
+              <div class="py-1"><span class="sm:hidden">จ.</span><span class="hidden sm:inline">จันทร์</span></div>
+              <div class="py-1"><span class="sm:hidden">อ.</span><span class="hidden sm:inline">อังคาร</span></div>
+              <div class="py-1"><span class="sm:hidden">พ.</span><span class="hidden sm:inline">พุธ</span></div>
+              <div class="py-1"><span class="sm:hidden">พฤ.</span><span class="hidden sm:inline">พฤหัส</span></div>
+              <div class="py-1"><span class="sm:hidden">ศ.</span><span class="hidden sm:inline">ศุกร์</span></div>
+              <div class="py-1 text-slate-400"><span class="sm:hidden">ส.</span><span class="hidden sm:inline">เสาร์</span></div>
+              <div class="py-1 text-slate-400"><span class="sm:hidden">อา.</span><span class="hidden sm:inline">อาทิตย์</span></div>
+            </div>
+            
+            <div id="calendar-days-container" class="grid grid-cols-7 gap-1 text-xs">
+              <!-- Days generated by JS -->
+            </div>
+          </div>
+
+          <!-- Attendance By Department / Team (5 cols) -->
+          <div class="col-span-12 lg:col-span-5 border-t lg:border-t-0 lg:border-l border-slate-100 pt-3 lg:pt-0 lg:pl-4 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between text-xs font-semibold text-slate-500 pb-2 mb-2 border-b border-slate-100">
+                <span id="attendance-roster-title" class="truncate pr-2 font-bold text-slate-700">รายชื่อบุคลากร (แยกตามกลุ่มงาน)</span>
+                <div class="grid grid-cols-2 gap-2 w-36 sm:w-44 text-center shrink-0">
+                  <span class="text-brand-600 font-bold bg-brand-50 py-0.5 rounded text-xs">เช้า</span>
+                  <span class="text-brand-600 font-bold bg-brand-50 py-0.5 rounded text-xs">บ่าย</span>
+                </div>
+              </div>
+
+              <div id="attendance-list-container" class="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+                <!-- Populated dynamically from Sheet ผู้ตรวจสอบ (Col C, E) + Sheet Office -->
+              </div>
+            </div>
+
+            <!-- Note on permission -->
+            <div class="text-[11px] text-slate-400 bg-slate-50 p-2 rounded-lg mt-3 flex items-center justify-between">
+              <span id="role-view-notice">มุมมองผู้บริหาร: แสดงบุคลากรทุกกลุ่มงาน</span>
+              <span class="text-brand-600 font-medium cursor-pointer" onclick="openAttendanceModal()">+ บันทึกของฉัน</span>
+            </div>
+          </div>
+
+        </div>
       </div>
 
-      <!-- Bottom Grid: Budget Card (Left) vs Multi-tab Individual Details Table (Right) -->
-      <div class="grid grid-cols-12 gap-4">
+      <!-- SECTION 2: ROW OF 3 CARDS IN ONE ROW (สรุปการเข้างาน, รายงานงบการเงิน, งบประมาณ ประจำปี 2570) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         
-        <!-- Bottom Left: งบประมาณ ประจำปี 2570 (Cols 1-4) -->
-        <div class="col-span-12 xl:col-span-4 bg-white rounded-2xl p-5 card-shadow border border-slate-100 flex flex-col justify-between">
+        <!-- Card 1: สรุปสถานะคนเข้างานวันนี้ -->
+        <div class="bg-white rounded-2xl p-5 card-shadow border border-slate-100 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <span class="p-1.5 rounded-lg bg-purple-50 text-brand-600">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                </span>
+                <h3 id="summary-card-title" class="text-sm font-semibold text-slate-800">สรุปการเข้างานวันนี้</h3>
+              </div>
+              <div class="grid grid-cols-2 gap-3 w-16 text-center text-xs font-semibold text-brand-600">
+                <span>เช้า</span>
+                <span>บ่าย</span>
+              </div>
+            </div>
+
+            <div class="space-y-2.5 text-xs">
+              <div class="flex items-center justify-between py-1 border-b border-slate-50">
+                <div class="flex items-center gap-2">
+                  <span class="status-dot bg-status-office"></span>
+                  <span class="text-slate-600">ทำงานใน Office</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3 w-16 text-center font-bold text-slate-700">
+                  <span id="stat-office-am">16</span>
+                  <span id="stat-office-pm">16</span>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between py-1 border-b border-slate-50">
+                <div class="flex items-center gap-2">
+                  <span class="status-dot bg-status-leave"></span>
+                  <span class="text-slate-600">ลา</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3 w-16 text-center font-bold text-slate-700">
+                  <span id="stat-leave-am">0</span>
+                  <span id="stat-leave-pm">0</span>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between py-1 border-b border-slate-50">
+                <div class="flex items-center gap-2">
+                  <span class="status-dot bg-brand-400"></span>
+                  <span class="text-slate-600">ประชุม / อบรม</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3 w-16 text-center font-bold text-slate-700">
+                  <span id="stat-train-am">0</span>
+                  <span id="stat-train-pm">0</span>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between py-1">
+                <div class="flex items-center gap-2">
+                  <span class="status-dot bg-status-wfa"></span>
+                  <span class="text-slate-600">WFA</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3 w-16 text-center font-bold text-slate-700">
+                  <span id="stat-wfa-am">0</span>
+                  <span id="stat-wfa-pm">0</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mini Progress bar -->
+            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3 flex">
+              <div class="bg-status-office h-full" style="width: 70%"></div>
+              <div class="bg-status-wfa h-full" style="width: 15%"></div>
+              <div class="bg-status-leave h-full" style="width: 15%"></div>
+            </div>
+          </div>
+
+          <div class="text-[11px] text-emerald-600 font-medium text-right mt-2 flex items-center justify-end gap-1">
+            <span>↑ 33% จากสัปดาห์ก่อน</span>
+          </div>
+        </div>
+
+        <!-- Card 2: สรุปรายงานงบการเงิน (Semi-circle Gauge) -->
+        <div class="bg-white rounded-2xl p-5 card-shadow border border-slate-100 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-sm font-semibold text-slate-800">รายงานงบการเงิน</h3>
+              <span class="text-xs text-slate-400 bg-slate-50 px-2 py-0.5 rounded">Jan 2025 ▾</span>
+            </div>
+
+            <!-- Gauge Chart Container -->
+            <div class="py-2 flex flex-col items-center justify-center">
+              <div style="width: 170px; height: 95px; position: relative;">
+                <canvas id="financeGaugeChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Legend & Percentages -->
+            <div class="space-y-1.5 text-xs mt-1">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded bg-brand-500"></span>
+                  <span class="text-slate-600">เสร็จสิ้น (เสนออธิการบดี)</span>
+                </div>
+                <span id="gauge-stat-complete" class="font-bold text-slate-700">59.5%</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded bg-amber-400"></span>
+                  <span class="text-slate-600">ระหว่างดำเนินการ</span>
+                </div>
+                <span id="gauge-stat-process" class="font-bold text-slate-700">24.4%</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded bg-blue-500"></span>
+                  <span class="text-slate-600">รอเอกสาร</span>
+                </div>
+                <span id="gauge-stat-pending" class="font-bold text-slate-700">16.1%</span>
+              </div>
+            </div>
+          </div>
+
+          <button onclick="navigate('finance')" class="w-full mt-3 py-1.5 text-xs text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-lg font-medium transition-all text-center">
+            เปิดดูตารางติดตาม 41 ส่วนงาน →
+          </button>
+        </div>
+
+        <!-- Card 3: งบประมาณ ประจำปี 2570 -->
+        <div class="bg-white rounded-2xl p-5 card-shadow border border-slate-100 flex flex-col justify-between">
           <div>
             <div class="flex items-center justify-between mb-3">
               <h3 class="text-sm font-semibold text-slate-800">งบประมาณ ประจำปี 2570</h3>
@@ -615,64 +605,66 @@
           </div>
         </div>
 
-        <!-- Bottom Right: Multi-tab Individual Details Table (Cols 5-12) -->
-        <div class="col-span-12 xl:col-span-8 bg-white rounded-2xl p-5 card-shadow border border-slate-100">
-          
-          <!-- Tab Buttons & Actions -->
-          <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
-              <button id="tab-btn-fin" onclick="switchDetailTab('fin')" 
-                class="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all bg-brand-500 text-white shadow-sm">
-                รายงานงบการเงิน
-              </button>
-              <button id="tab-btn-train" onclick="switchDetailTab('train')" 
-                class="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-600 hover:text-brand-600">
-                ประวัติการอบรม
-              </button>
-              <button id="tab-btn-pay" onclick="switchDetailTab('pay')" 
-                class="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-600 hover:text-brand-600 flex items-center gap-1">
-                <span>🔒 เงินเดือน</span>
-                <span id="tab-pay-badge" class="text-[9px] bg-purple-200 text-purple-800 px-1.5 py-0.2 rounded-full">Dean/Admin</span>
-              </button>
-            </div>
+      </div>
 
-            <div class="flex items-center gap-2">
-              <button onclick="exportTableToCSV()" class="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-1.5">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                <span>Export CSV</span>
-              </button>
-            </div>
+      <!-- SECTION 3: Multi-tab Individual Details Table (Full Width) -->
+      <div class="w-full bg-white rounded-2xl p-5 card-shadow border border-slate-100">
+        
+        <!-- Tab Buttons & Actions -->
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+            <button id="tab-btn-fin" onclick="switchDetailTab('fin')" 
+              class="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all bg-brand-500 text-white shadow-sm">
+              รายงานงบการเงิน
+            </button>
+            <button id="tab-btn-train" onclick="switchDetailTab('train')" 
+              class="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-600 hover:text-brand-600">
+              ประวัติการอบรม
+            </button>
+            <button id="tab-btn-pay" onclick="switchDetailTab('pay')" 
+              class="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-600 hover:text-brand-600 flex items-center gap-1">
+              <span>🔒 เงินเดือน</span>
+              <span id="tab-pay-badge" class="text-[9px] bg-purple-200 text-purple-800 px-1.5 py-0.2 rounded-full">Dean/Admin</span>
+            </button>
           </div>
 
-          <!-- Table Container -->
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
-              <thead class="text-slate-400 font-semibold border-b border-slate-100">
-                <tr id="table-dynamic-headers">
-                  <th class="py-2.5 px-3">TRANSACTION DATE</th>
-                  <th class="py-2.5 px-3">NAME PERSON</th>
-                  <th class="py-2.5 px-3">AMOUNT</th>
-                  <th class="py-2.5 px-3">CATEGORY</th>
-                  <th class="py-2.5 px-3">NOTE</th>
-                  <th class="py-2.5 px-3 text-right">ACTION</th>
-                </tr>
-              </thead>
-              <tbody id="table-dynamic-body" class="divide-y divide-slate-50">
-                <!-- Populated dynamically via JS -->
-              </tbody>
-            </table>
+          <div class="flex items-center gap-2">
+            <button onclick="exportTableToCSV()" class="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              <span>Export CSV</span>
+            </button>
           </div>
-
-          <div class="flex items-center justify-between text-xs text-slate-400 pt-3 border-t border-slate-100 mt-2">
-            <span id="table-row-count">แสดงรายการ</span>
-            <div class="flex items-center gap-2">
-              <button class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">‹ ก่อนหน้า</button>
-              <span class="font-medium text-slate-700">1</span>
-              <button class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">ถัดไป ›</button>
-            </div>
-          </div>
-
         </div>
+
+        <!-- Table Container -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="text-slate-400 font-semibold border-b border-slate-100">
+              <tr id="table-dynamic-headers">
+                <th class="py-2.5 px-3">TRANSACTION DATE</th>
+                <th class="py-2.5 px-3">NAME PERSON</th>
+                <th class="py-2.5 px-3">AMOUNT</th>
+                <th class="py-2.5 px-3">CATEGORY</th>
+                <th class="py-2.5 px-3">NOTE</th>
+                <th class="py-2.5 px-3 text-right">ACTION</th>
+              </tr>
+            </thead>
+            <tbody id="table-dynamic-body" class="divide-y divide-slate-50">
+              <!-- Populated dynamically via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="flex items-center justify-between text-xs text-slate-400 pt-3 border-t border-slate-100 mt-2">
+          <span id="table-row-count">แสดงรายการ</span>
+          <div class="flex items-center gap-2">
+            <button class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">‹ ก่อนหน้า</button>
+            <span class="font-medium text-slate-700">1</span>
+            <button class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">ถัดไป ›</button>
+          </div>
+        </div>
+
+      </div>
 
       </div>
 
@@ -966,237 +958,254 @@
   <!-- ============================================================== -->
   <!-- MODAL 1: บันทึกข้อมูลการเข้างาน (ชีท Office)                     -->
   <!-- ============================================================== -->
-  <div id="attendance-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl w-[92%] sm:w-[80%] md:w-[65%] max-w-2xl p-6 sm:p-7 card-shadow border border-slate-100">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-        <div>
-          <h3 class="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
-            <span>📝</span> บันทึกสถานะการปฏิบัติงาน
-          </h3>
-          <p class="text-xs text-brand-600">บันทึกลงในชีท "Office" โดยตรง</p>
+  <div id="attendance-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden overflow-y-auto">
+    <div class="min-h-full flex items-start justify-center p-3 sm:p-6">
+      <div class="bg-white rounded-3xl w-[94%] sm:w-[80%] md:w-[65%] max-w-2xl p-5 sm:p-6 card-shadow border border-slate-100 my-auto shadow-2xl relative">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+          <div>
+            <h3 class="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
+              <span>📝</span> บันทึกสถานะการปฏิบัติงาน
+            </h3>
+            <p class="text-xs text-brand-600">บันทึกลงในชีท "Office" โดยตรง</p>
+          </div>
+          <button type="button" onclick="closeAttendanceModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100">&times;</button>
         </div>
-        <button onclick="closeAttendanceModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+
+        <form id="attendance-form" onsubmit="saveAttendanceRecord(event)" class="space-y-3.5 text-xs">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">บุคลากร (รหัสพนักงานเชื่อมโยงอัตโนมัติ)</label>
+            <select id="modal-att-person" onchange="updateAttPersonCode()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <!-- Populated dynamically -->
+            </select>
+            <div class="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
+              <span>รหัสพนักงาน (ชีท Office Col A): <b id="modal-att-emp-code" class="text-brand-600">-</b></span>
+              <span id="modal-att-emp-email" class="text-slate-500">-</span>
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">วัน/เดือน/ปี (วัน เดือน ปี เช่น 10/11/2569)</label>
+            <input type="text" id="modal-att-date" required placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+
+          <!-- ภาค เช้า -->
+          <div class="p-3 bg-purple-50/50 border border-purple-100 rounded-2xl">
+            <label class="block font-semibold text-brand-800 mb-2 flex items-center justify-between">
+              <span>ภาคเช้า (Col C = เช้า)</span>
+              <span class="text-xs font-normal text-slate-500">การทำงาน (Col D)</span>
+            </label>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
+                <input type="radio" name="att_work_am" value="เข้า Office" checked class="text-brand-600 focus:ring-brand-500">
+                <span class="flex items-center gap-1 font-medium text-xs"><span class="status-dot bg-status-office"></span> เข้า Office</span>
+              </label>
+              <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
+                <input type="radio" name="att_work_am" value="WFA" class="text-brand-600 focus:ring-brand-500">
+                <span class="flex items-center gap-1 font-medium text-xs"><span class="status-dot bg-status-wfa"></span> WFA</span>
+              </label>
+              <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
+                <input type="radio" name="att_work_am" value="ลา" class="text-brand-600 focus:ring-brand-500">
+                <span class="flex items-center gap-1 font-medium text-xs"><span class="status-dot bg-status-leave"></span> ลา</span>
+              </label>
+              <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
+                <input type="radio" name="att_work_am" value="ประชุม/อบรม" class="text-brand-600 focus:ring-brand-500">
+                <span class="flex items-center gap-1 font-medium text-xs"><span class="status-dot bg-brand-400"></span> ประชุม/อบรม</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- ภาค บ่าย -->
+          <div class="p-3 bg-purple-50/50 border border-purple-100 rounded-2xl">
+            <label class="block font-semibold text-brand-800 mb-2 flex items-center justify-between">
+              <span>ภาคบ่าย (Col C = บ่าย)</span>
+              <span class="text-xs font-normal text-slate-500">การทำงาน (Col D)</span>
+            </label>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
+                <input type="radio" name="att_work_pm" value="เข้า Office" checked class="text-brand-600 focus:ring-brand-500">
+                <span class="flex items-center gap-1 font-medium text-xs"><span class="status-dot bg-status-office"></span> เข้า Office</span>
+              </label>
+              <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
+                <input type="radio" name="att_work_pm" value="WFA" class="text-brand-600 focus:ring-brand-500">
+                <span class="flex items-center gap-1 font-medium text-xs"><span class="status-dot bg-status-wfa"></span> WFA</span>
+              </label>
+              <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
+                <input type="radio" name="att_work_pm" value="ลา" class="text-brand-600 focus:ring-brand-500">
+                <span class="flex items-center gap-1 font-medium text-xs"><span class="status-dot bg-status-leave"></span> ลา</span>
+              </label>
+              <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
+                <input type="radio" name="att_work_pm" value="ประชุม/อบรม" class="text-brand-600 focus:ring-brand-500">
+                <span class="flex items-center gap-1 font-medium text-xs"><span class="status-dot bg-brand-400"></span> ประชุม/อบรม</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+            <button type="button" onclick="closeAttendanceModal()" class="px-4 py-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 font-medium">
+              ยกเลิก
+            </button>
+            <button type="submit" id="btn-save-attendance" class="px-5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-medium shadow-md shadow-brand-500/20">
+              บันทึกลงชีท Office
+            </button>
+          </div>
+        </form>
       </div>
-
-      <form id="attendance-form" onsubmit="saveAttendanceRecord(event)" class="space-y-4 text-xs sm:text-sm">
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">บุคลากร (รหัสพนักงานเชื่อมโยงอัตโนมัติ)</label>
-          <select id="modal-att-person" onchange="updateAttPersonCode()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
-            <!-- Populated dynamically -->
-          </select>
-          <div class="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
-            <span>รหัสพนักงาน (ชีท Office Col A): <b id="modal-att-emp-code" class="text-brand-600">-</b></span>
-            <span id="modal-att-emp-email" class="text-slate-500">-</span>
-          </div>
-        </div>
-
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">วัน/เดือน/ปี (วัน เดือน ปี เช่น 10/11/2569)</label>
-          <input type="text" id="modal-att-date" required placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
-        </div>
-
-        <!-- ภาค เช้า -->
-        <div class="p-3.5 bg-purple-50/50 border border-purple-100 rounded-2xl">
-          <label class="block font-semibold text-brand-800 mb-2 flex items-center justify-between">
-            <span>ภาคเช้า (Col C = เช้า)</span>
-            <span class="text-xs font-normal text-slate-500">การทำงาน (Col D)</span>
-          </label>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
-              <input type="radio" name="att_work_am" value="เข้า Office" checked class="text-brand-600 focus:ring-brand-500">
-              <span class="flex items-center gap-1 font-medium text-xs sm:text-sm"><span class="status-dot bg-status-office"></span> เข้า Office</span>
-            </label>
-            <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
-              <input type="radio" name="att_work_am" value="WFA" class="text-brand-600 focus:ring-brand-500">
-              <span class="flex items-center gap-1 font-medium text-xs sm:text-sm"><span class="status-dot bg-status-wfa"></span> WFA</span>
-            </label>
-            <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
-              <input type="radio" name="att_work_am" value="ลา" class="text-brand-600 focus:ring-brand-500">
-              <span class="flex items-center gap-1 font-medium text-xs sm:text-sm"><span class="status-dot bg-status-leave"></span> ลา</span>
-            </label>
-            <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
-              <input type="radio" name="att_work_am" value="ประชุม/อบรม" class="text-brand-600 focus:ring-brand-500">
-              <span class="flex items-center gap-1 font-medium text-xs sm:text-sm"><span class="status-dot bg-status-training"></span> ประชุม/อบรม</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- ภาค บ่าย -->
-        <div class="p-3.5 bg-purple-50/50 border border-purple-100 rounded-2xl">
-          <label class="block font-semibold text-brand-800 mb-2 flex items-center justify-between">
-            <span>ภาคบ่าย (Col C = บ่าย)</span>
-            <span class="text-xs font-normal text-slate-500">การทำงาน (Col D)</span>
-          </label>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
-              <input type="radio" name="att_work_pm" value="เข้า Office" checked class="text-brand-600 focus:ring-brand-500">
-              <span class="flex items-center gap-1 font-medium text-xs sm:text-sm"><span class="status-dot bg-status-office"></span> เข้า Office</span>
-            </label>
-            <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
-              <input type="radio" name="att_work_pm" value="WFA" class="text-brand-600 focus:ring-brand-500">
-              <span class="flex items-center gap-1 font-medium text-xs sm:text-sm"><span class="status-dot bg-status-wfa"></span> WFA</span>
-            </label>
-            <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
-              <input type="radio" name="att_work_pm" value="ลา" class="text-brand-600 focus:ring-brand-500">
-              <span class="flex items-center gap-1 font-medium text-xs sm:text-sm"><span class="status-dot bg-status-leave"></span> ลา</span>
-            </label>
-            <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
-              <input type="radio" name="att_work_pm" value="ประชุม/อบรม" class="text-brand-600 focus:ring-brand-500">
-              <span class="flex items-center gap-1 font-medium text-xs sm:text-sm"><span class="status-dot bg-status-training"></span> ประชุม/อบรม</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-          <button type="button" onclick="closeAttendanceModal()" class="px-4 py-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 font-medium">
-            ยกเลิก
-          </button>
-          <button type="submit" id="btn-save-attendance" class="px-5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-medium shadow-md shadow-brand-500/20">
-            บันทึกลงชีท Office
-          </button>
-        </div>
-      </form>
     </div>
   </div>
 
   <!-- ============================================================== -->
   <!-- MODAL 2: บันทึก/แก้ไขข้อมูลงวดงบการเงิน (ชีท Tracking & Edit)    -->
   <!-- ============================================================== -->
-  <div id="finance-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-    <div class="bg-white rounded-3xl w-[95%] sm:w-[85%] md:w-[75%] max-w-5xl p-6 sm:p-8 card-shadow border border-slate-100 my-6">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-        <div>
-          <h3 class="text-lg sm:text-xl font-bold text-slate-800 flex items-center gap-2">
-            <span>📊</span> บันทึก/แก้ไขข้อมูลงวดตรวจสอบงบการเงิน
-          </h3>
-          <p class="text-xs text-brand-600">เชื่อมโยงชีท Tracking & Edit อัตโนมัติ (ขนาดหน้าจอประมาณ 75%)</p>
-        </div>
-        <button onclick="closeFinanceModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
-      </div>
-
-      <form id="finance-form" onsubmit="saveFinanceRecord(event)" class="space-y-4 text-xs sm:text-sm">
-        
-        <!-- ส่วนงาน / คณะ & ผู้รับผิดชอบ (ดึงอัตโนมัติจากชีท ส่วนงาน) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div id="finance-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden overflow-y-auto">
+    <div class="min-h-full flex items-start justify-center p-2 sm:p-4 md:p-6">
+      <div class="bg-white rounded-3xl w-[96%] sm:w-[92%] md:w-[85%] lg:w-[80%] max-w-5xl p-4 sm:p-6 card-shadow border border-slate-100 my-auto shadow-2xl relative">
+        <div class="flex items-center justify-between pb-2.5 border-b border-slate-100 mb-3">
           <div>
-            <label class="block font-semibold text-slate-700 mb-1">ส่วนงาน / คณะ (ชีท ส่วนงาน)</label>
-            <select id="modal-fin-dept" onchange="onDepartmentSelectChange()" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
-              <!-- 41 Departments -->
-            </select>
+            <h3 class="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
+              <span>📊</span> บันทึก/แก้ไขข้อมูลงวดตรวจสอบงบการเงิน
+            </h3>
+            <p class="text-[11px] text-brand-600">เชื่อมโยงชีท Tracking & Edit อัตโนมัติ (ปรับแถวให้กระชับ)</p>
           </div>
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">ผู้รับผิดชอบ (ดึงอัตโนมัติจากชีท ส่วนงาน)</label>
-            <input type="text" id="modal-fin-auditor" readonly class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-semibold cursor-not-allowed">
-            <input type="hidden" id="modal-fin-cycle" value="รายเดือน">
-          </div>
+          <button type="button" onclick="closeFinanceModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100">&times;</button>
         </div>
 
-        <!-- ปีงบประมาณ & งวดรายงาน (สลับ 12 เดือน หรือ 4 ไตรมาส อัตโนมัติ) -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">ปีงบประมาณ</label>
-            <select id="modal-fin-year" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
-              <option value="2570">2570</option>
-              <option value="2569">2569</option>
-              <option value="2568">2568</option>
-            </select>
+        <form id="finance-form" onsubmit="saveFinanceRecord(event)" class="space-y-3 text-xs">
+          
+          <!-- แถวที่ 1: ส่วนงาน, ผู้ตรวจสอบที่รับผิดชอบ, ปีงบประมาณ, เดือน/ไตรมาส (4 คอลัมน์) -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">ส่วนงาน / คณะ (ชีท ส่วนงาน)</label>
+              <select id="modal-fin-dept" onchange="onDepartmentSelectChange()" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                <!-- 41 Departments -->
+              </select>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">ผู้รับผิดชอบ (ชีท ส่วนงาน)</label>
+              <input type="text" id="modal-fin-auditor" readonly class="w-full bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700 font-semibold cursor-not-allowed">
+              <input type="hidden" id="modal-fin-cycle" value="รายเดือน">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">ปีงบประมาณ</label>
+              <select id="modal-fin-year" onchange="onDepartmentSelectChange()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                <option value="2570">2570</option>
+                <option value="2569">2569</option>
+                <option value="2568">2568</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">งวดรายงาน <span id="modal-fin-cycle-badge" class="text-[10px] text-brand-600 font-normal">(รายเดือน)</span></label>
+              <select id="modal-fin-period" onchange="calculateAutoStatus()" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
           </div>
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">งวดรายงาน <span id="modal-fin-cycle-badge" class="text-xs text-brand-600 font-normal">(รายเดือน)</span></label>
-            <select id="modal-fin-period" onchange="calculateAutoStatus()" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
-              <!-- Populated dynamically: 12 months or 4 quarters -->
-            </select>
-          </div>
-        </div>
 
-        <!-- วันที่ตามขั้นตอน (ขยายตัวหนังสือทั้ง 6 ลำดับขั้นตอนให้อ่านได้ชัดเจน ตัดเหลือ (G), (H), (I)...) -->
-        <div class="p-4 sm:p-5 bg-slate-50/80 border border-slate-200 rounded-2xl space-y-3">
-          <div class="font-bold text-slate-800 text-sm sm:text-base flex items-center justify-between border-b border-slate-200 pb-2">
-            <span>ลำดับขั้นตอนการส่งตรวจ (ชีท Tracking)</span>
-            <span class="text-xs font-normal text-slate-500">กรอกวันที่ในแต่ละขั้นตอน (วัน/เดือน/ปี)</span>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm sm:text-base font-semibold text-slate-700 mb-1">1. วันที่ส่วนงานส่งงบ (G)</label>
-              <input type="text" id="modal-fin-dept-send" onchange="calculateAutoStatus()" placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm sm:text-base text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          <!-- แถวที่ 2: วันที่ส่วนงานส่งงบ (G), วันที่ผู้ตรวจสอบรับงบ (H), วันที่เสนอหัวหน้างาน (I) (3 คอลัมน์) -->
+          <div class="p-3 bg-slate-50/80 border border-slate-200 rounded-2xl">
+            <div class="text-[11px] font-bold text-slate-600 mb-2 flex items-center justify-between">
+              <span>ขั้นตอนรับงบและเสนอหัวหน้างาน (ชีท Tracking)</span>
+              <span class="text-[10px] font-normal text-slate-400">กรอกวันที่ วัน/เดือน/ปี</span>
             </div>
-            <div>
-              <label class="block text-sm sm:text-base font-semibold text-slate-700 mb-1">2. วันที่ผู้ตรวจรับงบ (H)</label>
-              <input type="text" id="modal-fin-aud-recv" onchange="calculateAutoStatus()" placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm sm:text-base text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
-            </div>
-            <div>
-              <label class="block text-sm sm:text-base font-semibold text-slate-700 mb-1">3. วันที่เสนองบให้หัวหน้างาน (I)</label>
-              <input type="text" id="modal-fin-submit-leader" onchange="calculateAutoStatus()" placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm sm:text-base text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
-            </div>
-            <div>
-              <label class="block text-sm sm:text-base font-semibold text-slate-700 mb-1">4. วันที่เสนองบให้ ผอ. (J)</label>
-              <input type="text" id="modal-fin-submit-dean" onchange="calculateAutoStatus()" placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm sm:text-base text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
-            </div>
-            <div>
-              <label class="block text-sm sm:text-base font-semibold text-slate-700 mb-1">5. วันที่ ผอ. เห็นชอบ (L)</label>
-              <div class="flex gap-2">
-                <input type="text" id="modal-fin-dean-approve" onchange="calculateAutoStatus()" placeholder="วว/ดด/ปปปป" class="datepicker flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm sm:text-base text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
-                <button type="button" id="btn-dean-approve-quick" onclick="deanApproveNow()" class="px-3 sm:px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap shadow-sm">
-                  ผอ.เห็นชอบ
-                </button>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">1. วันที่ส่วนงานส่งงบ (G)</label>
+                <input type="text" id="modal-fin-dept-send" onchange="calculateAutoStatus()" placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">2. วันที่ผู้ตรวจรับงบ (H)</label>
+                <input type="text" id="modal-fin-aud-recv" onchange="calculateAutoStatus()" placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">3. วันที่เสนองบให้หัวหน้างาน (I)</label>
+                <input type="text" id="modal-fin-submit-leader" onchange="calculateAutoStatus()" placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
               </div>
             </div>
-            <div>
-              <label class="block text-sm sm:text-base font-semibold text-slate-700 mb-1">6. วันที่เสนองบให้อธิการบดี (K)</label>
-              <input type="text" id="modal-fin-submit-president" onchange="calculateAutoStatus()" placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm sm:text-base text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+
+          <!-- แถวที่ 3: วันที่เสนองบให้ผอ. (J), วันที่ผอ. เห็นชอบ (L), วันที่เสนออธิการบดี (K) (3 คอลัมน์) -->
+          <div class="p-3 bg-slate-50/80 border border-slate-200 rounded-2xl">
+            <div class="text-[11px] font-bold text-slate-600 mb-2 flex items-center justify-between">
+              <span>ขั้นตอนเสนอ ผอ. และอธิการบดี (ชีท Tracking)</span>
+              <span class="text-[10px] font-normal text-slate-400">กรอกวันที่ วัน/เดือน/ปี</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">4. วันที่เสนองบให้ ผอ. (J)</label>
+                <input type="text" id="modal-fin-submit-dean" onchange="calculateAutoStatus()" placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">5. วันที่ ผอ. เห็นชอบ (L)</label>
+                <div class="flex gap-1.5">
+                  <input type="text" id="modal-fin-dean-approve" onchange="calculateAutoStatus()" placeholder="วว/ดด/ปปปป" class="datepicker flex-1 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                  <button type="button" id="btn-dean-approve-quick" onclick="deanApproveNow()" class="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold whitespace-nowrap shadow-sm">
+                    ผอ.เห็นชอบ
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">6. วันที่เสนออธิการบดี (K)</label>
+                <input type="text" id="modal-fin-submit-president" onchange="calculateAutoStatus()" placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- สถานะปัจจุบัน (คำนวณอัตโนมัติตามกฎ 6 ข้อ) -->
-        <div class="p-3 bg-purple-50 border border-purple-100 rounded-2xl flex items-center justify-between">
-          <div>
-            <div class="text-[11px] font-semibold text-brand-900">สถานะงานปัจจุบัน (คำนวณอัตโนมัติ):</div>
-            <div id="modal-fin-auto-status-desc" class="text-[11px] text-slate-500 mt-0.5">ยังไม่มีการบันทึกวันที่ส่วนงานส่งงบ</div>
-          </div>
-          <span id="modal-fin-auto-status-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-slate-200 text-slate-700">
-            1. รอเอกสาร
-          </span>
-        </div>
-
-        <!-- ส่วนของ ผอ. : รายการส่งกลับแก้ไข (ชีท Edit) -->
-        <div id="dean-edit-section" class="p-3.5 bg-amber-50/60 border border-amber-200/80 rounded-2xl space-y-2.5">
-          <div class="flex items-center justify-between">
-            <div>
-              <h4 class="font-bold text-amber-900 flex items-center gap-1.5">
-                <span>🔄</span> บันทึกการส่งกลับแก้ไข (ชีท Edit)
-              </h4>
-              <p class="text-[10px] text-amber-700">สำหรับ ผอ. ในการส่งรายงานกลับให้ผู้ตรวจสอบแก้ไข</p>
+          <!-- แถวที่ 4: สถานะปัจจุบัน และ การบันทึกเกี่ยวกับการแก้ไข -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+            
+            <!-- Left: สถานะปัจจุบัน (Cols 1-5) -->
+            <div class="col-span-12 lg:col-span-5 p-3 bg-purple-50/70 border border-purple-100 rounded-2xl flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-xs font-bold text-brand-900">สถานะงานปัจจุบัน (คำนวณอัตโนมัติ):</span>
+                  <span id="modal-fin-auto-status-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-200 text-slate-700">
+                    1. รอเอกสาร
+                  </span>
+                </div>
+                <div id="modal-fin-auto-status-desc" class="text-[11px] text-slate-500">
+                  ยังไม่มีการบันทึกวันที่ส่วนงานส่งงบ
+                </div>
+              </div>
+              <div class="mt-2 pt-2 border-t border-purple-100/60">
+                <label class="block text-[11px] font-medium text-slate-600 mb-1">บันทึกข้อความ / ผลการตรวจ</label>
+                <textarea id="modal-fin-note" rows="2" placeholder="ระบุข้อความผลการตรวจสอบหรือข้อสังเกตเพิ่มเติม" class="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1 text-xs text-slate-800 focus:ring-1 focus:ring-brand-500 focus:outline-none"></textarea>
+              </div>
             </div>
-            <button type="button" onclick="addEditRoundRow()" class="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center gap-1">
-              <span>+</span> เพิ่มข้อมูลแก้ไข
+
+            <!-- Right: ส่วนของ ผอ. : รายการส่งกลับแก้ไข (ชีท Edit) (Cols 6-12) -->
+            <div id="dean-edit-section" class="col-span-12 lg:col-span-7 p-3 bg-amber-50/60 border border-amber-200/80 rounded-2xl flex flex-col justify-between">
+              <div class="flex items-center justify-between mb-2">
+                <div>
+                  <h4 class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
+                    <span>🔄</span> บันทึกการส่งกลับแก้ไข (ชีท Edit)
+                  </h4>
+                  <p class="text-[10px] text-amber-700">สำหรับ ผอ. ในการส่งรายงานกลับให้ผู้ตรวจสอบแก้ไข</p>
+                </div>
+                <button type="button" onclick="addEditRoundRow()" class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center gap-1">
+                  <span>+</span> เพิ่มข้อมูลแก้ไข
+                </button>
+              </div>
+
+              <!-- Dynamic Edit Rounds Container -->
+              <div id="edit-rounds-container" class="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                <div id="no-edits-notice" class="text-center py-2 text-slate-400 text-[11px]">
+                  ยังไม่มีรายการส่งกลับแก้ไข (กด "+ เพิ่มข้อมูลแก้ไข" เมื่อต้องการให้ผู้ตรวจสอบแก้ไข)
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Modal Action Buttons -->
+          <div class="flex items-center justify-end gap-2 pt-2.5 border-t border-slate-100">
+            <button type="button" onclick="closeFinanceModal()" class="px-4 py-1.5 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 text-xs font-medium">
+              ยกเลิก
+            </button>
+            <button type="submit" id="btn-save-finance" class="px-5 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold shadow-md shadow-brand-500/20">
+              บันทึกข้อมูล (ลงชีท Tracking & Edit)
             </button>
           </div>
-
-          <!-- Dynamic Edit Rounds Container -->
-          <div id="edit-rounds-container" class="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
-            <div id="no-edits-notice" class="text-center py-2 text-slate-400 text-[11px]">
-              ยังไม่มีรายการส่งกลับแก้ไข (กด "+ เพิ่มข้อมูลแก้ไข" เมื่อต้องการให้ผู้ตรวจสอบแก้ไข)
-            </div>
-          </div>
-        </div>
-
-        <!-- บันทึกข้อความ / ผลการตรวจ -->
-        <div>
-          <label class="block font-medium text-slate-600 mb-1">บันทึกข้อความ / ผลการตรวจ</label>
-          <textarea id="modal-fin-note" rows="2" placeholder="ระบุข้อความผลการตรวจสอบหรือข้อสังเกตเพิ่มเติม" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
-        </div>
-
-        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-          <button type="button" onclick="closeFinanceModal()" class="px-4 py-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 font-medium">
-            ยกเลิก
-          </button>
-          <button type="submit" id="btn-save-finance" class="px-5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-medium shadow-md shadow-brand-500/20">
-            บันทึกข้อมูล (ลงชีท Tracking & Edit)
-          </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   </div>
 
@@ -2098,14 +2107,14 @@
 
           gHtml += `
             <div class="flex items-center justify-between py-1 text-xs hover:bg-slate-50 px-1.5 rounded-lg transition-all ${isMe ? 'bg-brand-50/70 border-l-2 border-brand-500' : ''}">
-              <div class="flex items-center gap-2">
-                <span class="status-dot ${dotColor}"></span>
-                <span class="font-medium text-slate-700">${displayName}</span>
-                ${isMe ? '<span class="text-[9px] bg-brand-200 text-brand-900 px-1 rounded font-bold">ฉัน</span>' : ''}
+              <div class="flex items-center gap-2 min-w-0 pr-2">
+                <span class="status-dot ${dotColor} shrink-0"></span>
+                <span class="font-medium text-slate-700 truncate">${displayName}</span>
+                ${isMe ? '<span class="text-[9px] bg-brand-200 text-brand-900 px-1 rounded font-bold shrink-0">ฉัน</span>' : ''}
               </div>
-              <div class="flex items-center gap-3 text-[11px]">
-                <span class="${getWorkTypeTextColor(amStatus)}">${amStatus}</span>
-                <span class="${getWorkTypeTextColor(pmStatus)}">${pmStatus}</span>
+              <div class="grid grid-cols-2 gap-2 w-36 sm:w-44 text-center shrink-0 text-[11px]">
+                <span class="${getWorkTypeTextColor(amStatus)} truncate py-0.5 rounded bg-slate-50/80">${amStatus}</span>
+                <span class="${getWorkTypeTextColor(pmStatus)} truncate py-0.5 rounded bg-slate-50/80">${pmStatus}</span>
               </div>
             </div>
           `;
