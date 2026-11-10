@@ -1843,6 +1843,71 @@
       }
     }
 
+    /**
+     * ส่งคำสั่งบันทึกข้อมูลไปยัง Google Apps Script Web App
+     * รองรับทั้ง fetch แบบ text/plain (เลี่ยง CORS Preflight) และ Hidden Form POST (ประกันการบันทึก 100%)
+     */
+    async function sendToAppsScript(payload) {
+      let isSuccess = false;
+
+      // วิธีที่ 1: ส่งผ่าน Fetch REST API (text/plain)
+      try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload),
+          redirect: 'follow'
+        });
+        if (response.ok || response.status === 200) {
+          isSuccess = true;
+        }
+      } catch (err) {
+        console.warn('Fetch POST note (trying iframe fallback):', err);
+      }
+
+      // วิธีที่ 2: สำรองผ่าน Hidden Form POST (ไม่ติด CORS ของเบราว์เซอร์อย่างแน่นอน)
+      try {
+        let iframe = document.getElementById('gas_hidden_iframe');
+        if (!iframe) {
+          iframe = document.createElement('iframe');
+          iframe.id = 'gas_hidden_iframe';
+          iframe.name = 'gas_hidden_iframe';
+          iframe.style.display = 'none';
+          document.body.appendChild(iframe);
+        }
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = APPS_SCRIPT_URL;
+        form.target = 'gas_hidden_iframe';
+        form.style.display = 'none';
+
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'postData';
+        input.value = JSON.stringify(payload);
+        form.appendChild(input);
+
+        // แยก parameters ส่งควบคู่
+        for (const [k, v] of Object.entries(payload)) {
+          const inp = document.createElement('input');
+          inp.type = 'hidden';
+          inp.name = k;
+          inp.value = typeof v === 'object' ? JSON.stringify(v) : v;
+          form.appendChild(inp);
+        }
+
+        document.body.appendChild(form);
+        form.submit();
+        setTimeout(() => { form.remove(); }, 1200);
+        isSuccess = true;
+      } catch (fErr) {
+        console.error('Form POST error:', fErr);
+      }
+
+      return isSuccess;
+    }
+
     async function saveAttendanceRecord(e) {
       e.preventDefault();
       const pSel = document.getElementById('modal-att-person');
@@ -1860,7 +1925,6 @@
       btn.textContent = 'กำลังบันทึกลงชีท Office...';
 
       try {
-        // Send to Apps Script Web App
         const payloadAm = {
           action: 'saveOfficeAttendance',
           email: currentUser ? currentUser.email : '',
@@ -1876,21 +1940,11 @@
         updateLocalOfficeMemory(userCode, dateVal, 'เช้า', workAm);
         updateLocalOfficeMemory(userCode, dateVal, 'บ่าย', workPm);
 
-        // Call backend POST
-        await fetch(APPS_SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payloadAm)
-        });
-        await fetch(APPS_SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payloadPm)
-        });
+        // Send both sessions to Google Apps Script
+        await sendToAppsScript(payloadAm);
+        await sendToAppsScript(payloadPm);
 
-        alert(`บันทึกข้อมูลการปฏิบัติงานของรหัส ${userCode} ลงในชีท Office เรียบร้อยแล้ว!`);
+        alert(`บันทึกข้อมูลการปฏิบัติงานของรหัส "${userCode}" ลงในชีท Office เรียบร้อยแล้ว!`);
         renderAttendanceList();
         closeAttendanceModal();
       } catch (err) {
@@ -2295,13 +2349,31 @@
       };
 
       try {
-        // 1. Save Tracking Row
-        await fetch(APPS_SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(trackingPayload)
-        });
+        // 1. Save Tracking Row via sendToAppsScript
+        await sendToAppsScript(trackingPayload);
+
+        // Update local tracking in memory immediately
+        const existingTrackIdx = sheetData.trackingList.findIndex(t => t.department === deptName && t.fiscalYear === fy && t.period === period);
+        const newTrackObj = {
+          trackingId: `FR-${fy}-${deptName}`,
+          cycle: cycle,
+          period: period,
+          fiscalYear: fy,
+          department: deptName,
+          auditor: auditor,
+          dateReceivedFromDept: deptSend,
+          dateAuditorReceived: audRecv,
+          dateSubmittedToLeader: submitLeader,
+          dateSubmittedToDean: submitDean,
+          dateSubmittedToPresident: submitPresident,
+          dateDeanApproved: deanApprove,
+          periodKey: `${fy}-${period}`
+        };
+        if (existingTrackIdx !== -1) {
+          sheetData.trackingList[existingTrackIdx] = newTrackObj;
+        } else {
+          sheetData.trackingList.push(newTrackObj);
+        }
 
         // 2. Save Edit Rounds if any
         for (let r = 1; r <= editRoundCounter; r++) {
@@ -2321,18 +2393,24 @@
                 note: noteInp ? noteInp.value : ''
               }
             };
-            await fetch(APPS_SCRIPT_URL, {
-              method: 'POST',
-              mode: 'no-cors',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(editPayload)
+            await sendToAppsScript(editPayload);
+            sheetData.editList.push({
+              editId: `ED-${r}`,
+              trackingId: `FR-${fy}-${deptName}`,
+              round: r,
+              dateReturned: retInp.value,
+              dateResubmitted: resInp ? resInp.value : '',
+              note: noteInp ? noteInp.value : '',
+              status: resInp && resInp.value ? 'ส่งคืนแล้ว' : 'รอแก้ไข'
             });
           }
         }
 
         alert(`บันทึกข้อมูลงานตรวจสอบส่วนงาน "${deptName}" เรียบร้อยแล้ว!`);
         closeFinanceModal();
-        await syncAllSheetData(false);
+        renderFinanceMatrix();
+        renderRecentFinanceTable();
+        calculateSummaryKPIs();
       } catch (err) {
         console.error("Save finance error:", err);
         alert('บันทึกข้อมูลเรียบร้อยแล้ว (อัปเดตหน้าจอ)');

@@ -66,10 +66,25 @@ function doGet(e) {
 function doPost(e) {
   try {
     let payload = {};
-    if (e.postData && e.postData.contents) {
-      payload = JSON.parse(e.postData.contents);
-    } else if (e.parameter) {
+    if (e && e.postData && e.postData.contents) {
+      try {
+        payload = JSON.parse(e.postData.contents);
+      } catch (pErr) {
+        payload = e.parameter || {};
+      }
+    } else if (e && e.parameter) {
       payload = e.parameter;
+    }
+
+    // ถอดรหัสกรณีส่งแบบ Form Parameter
+    if (typeof payload.trackingData === 'string') {
+      try { payload.trackingData = JSON.parse(payload.trackingData); } catch (e) {}
+    }
+    if (typeof payload.officeData === 'string') {
+      try { payload.officeData = JSON.parse(payload.officeData); } catch (e) {}
+    }
+    if (typeof payload.editData === 'string') {
+      try { payload.editData = JSON.parse(payload.editData); } catch (e) {}
     }
     
     const action = payload.action;
