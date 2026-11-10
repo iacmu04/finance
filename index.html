@@ -16,6 +16,12 @@
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+  <!-- Flatpickr (Thai Datepicker: วัน/เดือน/ปี) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/airbnb.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://npmcdn.com/flatpickr/dist/l10n/th.js"></script>
+
   <script>
     tailwind.config = {
       theme: {
@@ -68,6 +74,19 @@
       animation: spin 1s linear infinite;
     }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .flatpickr-calendar {
+      font-family: 'Prompt', 'Sarabun', sans-serif !important;
+      border-radius: 1rem !important;
+      box-shadow: 0 10px 25px -5px rgba(111, 82, 237, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+      border: 1px solid #EAE6FE !important;
+    }
+    .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
+      background: #7952E0 !important;
+      border-color: #7952E0 !important;
+    }
+    .flatpickr-day:hover {
+      background: #EAE6FE !important;
+    }
   </style>
 
   <!-- Google Identity Services (GSI) Client Library -->
@@ -257,45 +276,45 @@
   <div class="flex-1 flex flex-col min-h-screen overflow-x-hidden">
 
     <!-- TOP HEADER BAR -->
-    <header class="p-4 pb-2">
-      <div class="bg-gradient-to-r from-brand-600 via-brand-500 to-purple-500 text-white rounded-2xl px-6 py-3.5 flex items-center justify-between shadow-lg shadow-brand-500/20">
+    <header class="p-2 sm:p-4 pb-2">
+      <div class="bg-gradient-to-r from-brand-600 via-brand-500 to-purple-500 text-white rounded-2xl px-3 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between shadow-lg shadow-brand-500/20">
         <!-- Title & Unit Name -->
-        <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-lg bg-white/15 backdrop-blur-sm flex items-center justify-center">
+        <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div class="w-8 h-8 rounded-lg bg-white/15 backdrop-blur-sm flex items-center justify-center shrink-0">
             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
             </svg>
           </div>
-          <div>
-            <h1 class="text-lg font-semibold tracking-wide flex items-center gap-2">
-              Internal Audit Chiang Mai University
-              <span id="sheet-sync-pill" class="text-[11px] font-normal bg-white/20 px-2.5 py-0.5 rounded-full border border-white/20 flex items-center gap-1 cursor-pointer" onclick="syncAllSheetData(true)">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>Real-time Sheets</span>
+          <div class="min-w-0">
+            <h1 class="text-sm sm:text-base md:text-lg font-semibold tracking-wide flex items-center gap-1.5 sm:gap-2">
+              <span class="truncate">Internal Audit Chiang Mai University</span>
+              <span id="sheet-sync-pill" class="text-[11px] font-normal bg-white/20 px-2 py-0.5 sm:px-2.5 rounded-full border border-white/20 flex items-center gap-1.5 cursor-pointer shrink-0" onclick="syncAllSheetData(true)" title="คลิกเพื่อซิงค์ข้อมูล Google Sheets">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+                <span class="hidden sm:inline">Real-time Sheets</span>
               </span>
             </h1>
           </div>
         </div>
 
         <!-- Right Side: User Profile & Role Switcher -->
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 sm:gap-3 shrink-0">
           <!-- Role Simulator -->
-          <div class="hidden md:flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-xl border border-white/20 text-xs">
+          <div class="hidden lg:flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-xl border border-white/20 text-xs">
             <span class="text-white/80">มุมมองสิทธิ์:</span>
             <select id="role-selector" onchange="switchRole(this.value)" class="bg-transparent text-white font-medium focus:outline-none cursor-pointer">
               <!-- Populated dynamically -->
             </select>
           </div>
 
-          <!-- User Profile Display -->
-          <div class="flex items-center gap-3 bg-white/10 pl-2 pr-3 py-1 rounded-xl border border-white/20">
-            <img id="user-avatar-img" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" 
-              alt="Avatar" class="w-9 h-9 rounded-full object-cover ring-2 ring-white/50">
-            <div class="text-left text-xs">
-              <div id="user-display-name" class="font-medium text-white leading-tight">กำลังตรวจสอบสิทธิ์...</div>
-              <div id="user-display-email" class="text-[11px] text-white/70">กำลังเชื่อมต่อ...</div>
+          <!-- User Profile Display (บนมือถือแสดงแค่รูปตามที่ผู้ใช้ร้องขอ) -->
+          <div class="flex items-center gap-2 sm:gap-3 bg-white/10 p-1 sm:pl-2 sm:pr-3 sm:py-1 rounded-xl border border-white/20">
+            <img id="user-avatar-img" src="https://ui-avatars.com/api/?name=User&background=7952E0&color=fff&rounded=true" 
+              alt="Avatar" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover ring-2 ring-white/50 shrink-0">
+            <div class="hidden md:block text-left text-xs max-w-[160px]">
+              <div id="user-display-name" class="font-medium text-white leading-tight truncate">กำลังตรวจสอบสิทธิ์...</div>
+              <div id="user-display-email" class="text-[11px] text-white/70 truncate">กำลังเชื่อมต่อ...</div>
             </div>
-            <button onclick="handleLogout()" title="ออกจากระบบ" class="text-white/70 hover:text-white ml-1">
+            <button onclick="handleLogout()" title="ออกจากระบบ" class="text-white/70 hover:text-white p-1 ml-0.5">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
             </button>
           </div>
@@ -304,40 +323,64 @@
     </header>
 
     <!-- VIEW 1: HOME DASHBOARD (ตามภาพแรก) -->
-    <main id="view-home" class="p-4 pt-2 flex flex-col gap-4">
+    <main id="view-home" class="p-2 sm:p-4 pt-2 flex flex-col gap-4">
       
       <!-- Top Grid: Calendar + Attendance By Team + Today's Summary & Finance Gauge -->
       <div class="grid grid-cols-12 gap-4">
         
         <!-- Left & Center: Calendar & Attendance Matrix (Cols 1-9) -->
-        <div class="col-span-12 xl:col-span-9 bg-white rounded-2xl p-5 card-shadow border border-slate-100 flex flex-col justify-between">
+        <div class="col-span-12 xl:col-span-9 bg-white rounded-2xl p-4 sm:p-5 card-shadow border border-slate-100 flex flex-col justify-between">
           
-          <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-            <div class="flex items-center gap-3">
-              <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
-                <span>📅</span> ปฏิทินและสถานะการเข้าปฏิบัติงาน
-              </h2>
-              <span id="current-month-label" class="text-xs bg-brand-50 text-brand-700 px-3 py-1 rounded-full font-medium">
-                มกราคม 2568 (Jan 2025)
-              </span>
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-4 border-b border-slate-100 pb-3">
+            <!-- ปฏิทิน: ลบข้อความยาว เหลือแค่เดือน/ปี พร้อมตัวเลือกเดือน/ปี -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <div class="flex items-center gap-1.5 bg-brand-50 text-brand-700 px-3 py-1.5 rounded-xl border border-brand-100">
+                <span class="text-base">📅</span>
+                <span id="current-month-year-title" class="text-xs sm:text-sm font-bold">พฤศจิกายน 2569</span>
+              </div>
+
+              <!-- Month and Year Dropdowns -->
+              <div class="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 text-xs">
+                <select id="calendar-select-month" onchange="onCalendarMonthYearChange()" class="bg-transparent text-slate-700 font-semibold focus:outline-none cursor-pointer">
+                  <option value="0">มกราคม</option>
+                  <option value="1">กุมภาพันธ์</option>
+                  <option value="2">มีนาคม</option>
+                  <option value="3">เมษายน</option>
+                  <option value="4">พฤษภาคม</option>
+                  <option value="5">มิถุนายน</option>
+                  <option value="6">กรกฎาคม</option>
+                  <option value="7">สิงหาคม</option>
+                  <option value="8">กันยายน</option>
+                  <option value="9">ตุลาคม</option>
+                  <option value="10">พฤศจิกายน</option>
+                  <option value="11">ธันวาคม</option>
+                </select>
+                <select id="calendar-select-year" onchange="onCalendarMonthYearChange()" class="bg-transparent text-slate-700 font-semibold focus:outline-none cursor-pointer">
+                  <option value="2568">2568</option>
+                  <option value="2569">2569</option>
+                  <option value="2570">2570</option>
+                  <option value="2571">2571</option>
+                  <option value="2572">2572</option>
+                </select>
+              </div>
             </div>
 
-            <!-- Legend & Action -->
-            <div class="flex items-center gap-4 text-xs">
-              <div class="flex items-center gap-1.5">
+            <!-- Legend & Compact Action Button -->
+            <div class="flex flex-wrap items-center gap-3 text-xs">
+              <div class="flex items-center gap-1">
                 <span class="status-dot bg-status-office"></span>
-                <span>Office (เข้า Office)</span>
+                <span class="text-slate-600">Office</span>
               </div>
-              <div class="flex items-center gap-1.5">
+              <div class="flex items-center gap-1">
                 <span class="status-dot bg-status-wfa"></span>
-                <span>WFA / ประชุม</span>
+                <span class="text-slate-600">WFA/ประชุม</span>
               </div>
-              <div class="flex items-center gap-1.5">
+              <div class="flex items-center gap-1">
                 <span class="status-dot bg-status-leave"></span>
-                <span>ลา</span>
+                <span class="text-slate-600">ลา</span>
               </div>
-              <button onclick="openAttendanceModal()" class="ml-2 px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg font-medium transition-all shadow-sm flex items-center gap-1.5">
-                <span>+</span> บันทึกสถานะการเข้างาน (ชีท Office)
+              <button onclick="openAttendanceModal()" class="px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-medium transition-all shadow-sm flex items-center gap-1.5 whitespace-nowrap">
+                <span>+</span> บันทึกสถานะการเข้างาน
               </button>
             </div>
           </div>
@@ -348,13 +391,13 @@
             <!-- Calendar Grid (7 cols) -->
             <div class="col-span-12 md:col-span-7">
               <div class="grid grid-cols-7 text-center text-xs font-semibold text-slate-500 mb-2">
-                <div class="py-1">Monday</div>
-                <div class="py-1">Tuesday</div>
-                <div class="py-1">Wednesday</div>
-                <div class="py-1">Thursday</div>
-                <div class="py-1">Friday</div>
-                <div class="py-1 text-slate-400">Saturday</div>
-                <div class="py-1 text-slate-400">Sunday</div>
+                <div class="py-1"><span class="sm:hidden">จ.</span><span class="hidden sm:inline">จันทร์</span></div>
+                <div class="py-1"><span class="sm:hidden">อ.</span><span class="hidden sm:inline">อังคาร</span></div>
+                <div class="py-1"><span class="sm:hidden">พ.</span><span class="hidden sm:inline">พุธ</span></div>
+                <div class="py-1"><span class="sm:hidden">พฤ.</span><span class="hidden sm:inline">พฤหัส</span></div>
+                <div class="py-1"><span class="sm:hidden">ศ.</span><span class="hidden sm:inline">ศุกร์</span></div>
+                <div class="py-1 text-slate-400"><span class="sm:hidden">ส.</span><span class="hidden sm:inline">เสาร์</span></div>
+                <div class="py-1 text-slate-400"><span class="sm:hidden">อา.</span><span class="hidden sm:inline">อาทิตย์</span></div>
               </div>
               
               <div id="calendar-days-container" class="grid grid-cols-7 gap-1 text-xs">
@@ -365,16 +408,16 @@
             <!-- Attendance By Department / Team (5 cols) -->
             <div class="col-span-12 md:col-span-5 border-l border-slate-100 pl-4 flex flex-col justify-between">
               <div>
-                <div class="flex items-center justify-between text-xs font-semibold text-slate-400 pb-2 mb-2 border-b border-slate-100">
-                  <span>รายชื่อบุคลากร (แยกตามกลุ่มงาน)</span>
+                <div class="flex items-center justify-between text-xs font-semibold text-slate-500 pb-2 mb-2 border-b border-slate-100">
+                  <span id="attendance-roster-title">รายชื่อบุคลากร (แยกตามกลุ่มงาน)</span>
                   <div class="flex items-center gap-4 pr-1">
                     <span class="text-brand-600 font-medium">เช้า</span>
                     <span class="text-brand-600 font-medium">บ่าย</span>
                   </div>
                 </div>
 
-                <div id="attendance-list-container" class="space-y-3.5 max-h-[380px] overflow-y-auto pr-1">
-                  <!-- Populated from Sheet Office + ผู้ตรวจสอบ -->
+                <div id="attendance-list-container" class="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                  <!-- Populated dynamically from Sheet ผู้ตรวจสอบ (Col C, E) + Sheet Office -->
                 </div>
               </div>
 
@@ -399,7 +442,7 @@
                   <span class="p-1.5 rounded-lg bg-purple-50 text-brand-600">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                   </span>
-                  <h3 class="text-sm font-semibold text-slate-800">สรุปการเข้างานวันนี้</h3>
+                  <h3 id="summary-card-title" class="text-sm font-semibold text-slate-800">สรุปการเข้างานวันนี้</h3>
                 </div>
                 <div class="flex items-center gap-3 text-xs font-semibold text-brand-600">
                   <span>เช้า</span>
@@ -734,15 +777,15 @@
                     <th class="py-2.5 px-2 text-center">ต.ค.</th>
                     <th class="py-2.5 px-2 text-center">พ.ย.</th>
                     <th class="py-2.5 px-2 text-center">ธ.ค.</th>
-                    <th class="py-2.5 px-2 text-center bg-purple-50/70 text-brand-700">ม.ค. (Q1)</th>
+                    <th class="py-2.5 px-2 text-center bg-purple-50/70 text-brand-700">ม.ค.</th>
                     <th class="py-2.5 px-2 text-center">ก.พ.</th>
                     <th class="py-2.5 px-2 text-center">มี.ค.</th>
-                    <th class="py-2.5 px-2 text-center bg-purple-50/70 text-brand-700">เม.ย. (Q2)</th>
+                    <th class="py-2.5 px-2 text-center bg-purple-50/70 text-brand-700">เม.ย.</th>
                     <th class="py-2.5 px-2 text-center">พ.ค.</th>
                     <th class="py-2.5 px-2 text-center">มิ.ย.</th>
-                    <th class="py-2.5 px-2 text-center bg-purple-50/70 text-brand-700">ก.ค. (Q3)</th>
+                    <th class="py-2.5 px-2 text-center bg-purple-50/70 text-brand-700">ก.ค.</th>
                     <th class="py-2.5 px-2 text-center">ส.ค.</th>
-                    <th class="py-2.5 px-2 text-center bg-purple-50/70 text-brand-700">ก.ย. (Q4)</th>
+                    <th class="py-2.5 px-2 text-center bg-purple-50/70 text-brand-700">ก.ย.</th>
                     <th class="py-2.5 px-3 text-center min-w-[120px]">ความคืบหน้า</th>
                   </tr>
                 </thead>
@@ -924,82 +967,82 @@
   <!-- MODAL 1: บันทึกข้อมูลการเข้างาน (ชีท Office)                     -->
   <!-- ============================================================== -->
   <div id="attendance-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-md w-full p-6 card-shadow border border-slate-100">
+    <div class="bg-white rounded-3xl w-[92%] sm:w-[80%] md:w-[65%] max-w-2xl p-6 sm:p-7 card-shadow border border-slate-100">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
         <div>
-          <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+          <h3 class="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
             <span>📝</span> บันทึกสถานะการปฏิบัติงาน
           </h3>
-          <p class="text-[11px] text-brand-600">บันทึกลงในชีท "Office" โดยตรง</p>
+          <p class="text-xs text-brand-600">บันทึกลงในชีท "Office" โดยตรง</p>
         </div>
-        <button onclick="closeAttendanceModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+        <button onclick="closeAttendanceModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
       </div>
 
-      <form id="attendance-form" onsubmit="saveAttendanceRecord(event)" class="space-y-3.5 text-xs">
+      <form id="attendance-form" onsubmit="saveAttendanceRecord(event)" class="space-y-4 text-xs sm:text-sm">
         <div>
-          <label class="block font-medium text-slate-600 mb-1">บุคลากร (รหัสพนักงานเชื่อมโยงอัตโนมัติ)</label>
+          <label class="block font-semibold text-slate-700 mb-1">บุคลากร (รหัสพนักงานเชื่อมโยงอัตโนมัติ)</label>
           <select id="modal-att-person" onchange="updateAttPersonCode()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
             <!-- Populated dynamically -->
           </select>
-          <div class="text-[10px] text-slate-400 mt-1 flex items-center justify-between">
+          <div class="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
             <span>รหัสพนักงาน (ชีท Office Col A): <b id="modal-att-emp-code" class="text-brand-600">-</b></span>
             <span id="modal-att-emp-email" class="text-slate-500">-</span>
           </div>
         </div>
 
         <div>
-          <label class="block font-medium text-slate-600 mb-1">วัน/เดือน/ปี (Col B)</label>
-          <input type="date" id="modal-att-date" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          <label class="block font-semibold text-slate-700 mb-1">วัน/เดือน/ปี (วัน เดือน ปี เช่น 10/11/2569)</label>
+          <input type="text" id="modal-att-date" required placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
         </div>
 
         <!-- ภาค เช้า -->
-        <div class="p-3 bg-purple-50/50 border border-purple-100 rounded-2xl">
-          <label class="block font-semibold text-brand-800 mb-1.5 flex items-center justify-between">
+        <div class="p-3.5 bg-purple-50/50 border border-purple-100 rounded-2xl">
+          <label class="block font-semibold text-brand-800 mb-2 flex items-center justify-between">
             <span>ภาคเช้า (Col C = เช้า)</span>
-            <span class="text-[10px] font-normal text-slate-500">การทำงาน (Col D)</span>
+            <span class="text-xs font-normal text-slate-500">การทำงาน (Col D)</span>
           </label>
-          <div class="grid grid-cols-2 gap-2">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
               <input type="radio" name="att_work_am" value="เข้า Office" checked class="text-brand-600 focus:ring-brand-500">
-              <span class="flex items-center gap-1 font-medium"><span class="status-dot bg-status-office"></span> เข้า Office</span>
+              <span class="flex items-center gap-1 font-medium text-xs sm:text-sm"><span class="status-dot bg-status-office"></span> เข้า Office</span>
             </label>
             <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
               <input type="radio" name="att_work_am" value="WFA" class="text-brand-600 focus:ring-brand-500">
-              <span class="flex items-center gap-1 font-medium"><span class="status-dot bg-status-wfa"></span> WFA</span>
+              <span class="flex items-center gap-1 font-medium text-xs sm:text-sm"><span class="status-dot bg-status-wfa"></span> WFA</span>
             </label>
             <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
               <input type="radio" name="att_work_am" value="ลา" class="text-brand-600 focus:ring-brand-500">
-              <span class="flex items-center gap-1 font-medium"><span class="status-dot bg-status-leave"></span> ลา</span>
+              <span class="flex items-center gap-1 font-medium text-xs sm:text-sm"><span class="status-dot bg-status-leave"></span> ลา</span>
             </label>
             <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
               <input type="radio" name="att_work_am" value="ประชุม/อบรม" class="text-brand-600 focus:ring-brand-500">
-              <span class="flex items-center gap-1 font-medium"><span class="status-dot bg-status-training"></span> ประชุม/อบรม</span>
+              <span class="flex items-center gap-1 font-medium text-xs sm:text-sm"><span class="status-dot bg-status-training"></span> ประชุม/อบรม</span>
             </label>
           </div>
         </div>
 
         <!-- ภาค บ่าย -->
-        <div class="p-3 bg-purple-50/50 border border-purple-100 rounded-2xl">
-          <label class="block font-semibold text-brand-800 mb-1.5 flex items-center justify-between">
+        <div class="p-3.5 bg-purple-50/50 border border-purple-100 rounded-2xl">
+          <label class="block font-semibold text-brand-800 mb-2 flex items-center justify-between">
             <span>ภาคบ่าย (Col C = บ่าย)</span>
-            <span class="text-[10px] font-normal text-slate-500">การทำงาน (Col D)</span>
+            <span class="text-xs font-normal text-slate-500">การทำงาน (Col D)</span>
           </label>
-          <div class="grid grid-cols-2 gap-2">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
               <input type="radio" name="att_work_pm" value="เข้า Office" checked class="text-brand-600 focus:ring-brand-500">
-              <span class="flex items-center gap-1 font-medium"><span class="status-dot bg-status-office"></span> เข้า Office</span>
+              <span class="flex items-center gap-1 font-medium text-xs sm:text-sm"><span class="status-dot bg-status-office"></span> เข้า Office</span>
             </label>
             <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
               <input type="radio" name="att_work_pm" value="WFA" class="text-brand-600 focus:ring-brand-500">
-              <span class="flex items-center gap-1 font-medium"><span class="status-dot bg-status-wfa"></span> WFA</span>
+              <span class="flex items-center gap-1 font-medium text-xs sm:text-sm"><span class="status-dot bg-status-wfa"></span> WFA</span>
             </label>
             <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
               <input type="radio" name="att_work_pm" value="ลา" class="text-brand-600 focus:ring-brand-500">
-              <span class="flex items-center gap-1 font-medium"><span class="status-dot bg-status-leave"></span> ลา</span>
+              <span class="flex items-center gap-1 font-medium text-xs sm:text-sm"><span class="status-dot bg-status-leave"></span> ลา</span>
             </label>
             <label class="border border-slate-200 bg-white rounded-xl p-2 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50">
               <input type="radio" name="att_work_pm" value="ประชุม/อบรม" class="text-brand-600 focus:ring-brand-500">
-              <span class="flex items-center gap-1 font-medium"><span class="status-dot bg-status-training"></span> ประชุม/อบรม</span>
+              <span class="flex items-center gap-1 font-medium text-xs sm:text-sm"><span class="status-dot bg-status-training"></span> ประชุม/อบรม</span>
             </label>
           </div>
         </div>
@@ -1019,39 +1062,39 @@
   <!-- ============================================================== -->
   <!-- MODAL 2: บันทึก/แก้ไขข้อมูลงวดงบการเงิน (ชีท Tracking & Edit)    -->
   <!-- ============================================================== -->
-  <div id="finance-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
-    <div class="bg-white rounded-3xl max-w-xl w-full p-6 card-shadow border border-slate-100 my-8">
+  <div id="finance-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl w-[95%] sm:w-[85%] md:w-[75%] max-w-5xl p-6 sm:p-8 card-shadow border border-slate-100 my-6">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
         <div>
-          <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+          <h3 class="text-lg sm:text-xl font-bold text-slate-800 flex items-center gap-2">
             <span>📊</span> บันทึก/แก้ไขข้อมูลงวดตรวจสอบงบการเงิน
           </h3>
-          <p class="text-[11px] text-brand-600">เชื่อมโยงชีท Tracking & Edit อัตโนมัติ</p>
+          <p class="text-xs text-brand-600">เชื่อมโยงชีท Tracking & Edit อัตโนมัติ (ขนาดหน้าจอประมาณ 75%)</p>
         </div>
-        <button onclick="closeFinanceModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+        <button onclick="closeFinanceModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
       </div>
 
-      <form id="finance-form" onsubmit="saveFinanceRecord(event)" class="space-y-3.5 text-xs">
+      <form id="finance-form" onsubmit="saveFinanceRecord(event)" class="space-y-4 text-xs sm:text-sm">
         
         <!-- ส่วนงาน / คณะ & ผู้รับผิดชอบ (ดึงอัตโนมัติจากชีท ส่วนงาน) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block font-medium text-slate-600 mb-1">ส่วนงาน / คณะ (ชีท ส่วนงาน)</label>
+            <label class="block font-semibold text-slate-700 mb-1">ส่วนงาน / คณะ (ชีท ส่วนงาน)</label>
             <select id="modal-fin-dept" onchange="onDepartmentSelectChange()" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
               <!-- 41 Departments -->
             </select>
           </div>
           <div>
-            <label class="block font-medium text-slate-600 mb-1">ผู้รับผิดชอบ (ดึงอัตโนมัติจากชีท ส่วนงาน)</label>
+            <label class="block font-semibold text-slate-700 mb-1">ผู้รับผิดชอบ (ดึงอัตโนมัติจากชีท ส่วนงาน)</label>
             <input type="text" id="modal-fin-auditor" readonly class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-semibold cursor-not-allowed">
             <input type="hidden" id="modal-fin-cycle" value="รายเดือน">
           </div>
         </div>
 
         <!-- ปีงบประมาณ & งวดรายงาน (สลับ 12 เดือน หรือ 4 ไตรมาส อัตโนมัติ) -->
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block font-medium text-slate-600 mb-1">ปีงบประมาณ</label>
+            <label class="block font-semibold text-slate-700 mb-1">ปีงบประมาณ</label>
             <select id="modal-fin-year" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
               <option value="2570">2570</option>
               <option value="2569">2569</option>
@@ -1059,49 +1102,49 @@
             </select>
           </div>
           <div>
-            <label class="block font-medium text-slate-600 mb-1">งวดรายงาน <span id="modal-fin-cycle-badge" class="text-[10px] text-brand-600 font-normal">(รายเดือน)</span></label>
+            <label class="block font-semibold text-slate-700 mb-1">งวดรายงาน <span id="modal-fin-cycle-badge" class="text-xs text-brand-600 font-normal">(รายเดือน)</span></label>
             <select id="modal-fin-period" onchange="calculateAutoStatus()" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
               <!-- Populated dynamically: 12 months or 4 quarters -->
             </select>
           </div>
         </div>
 
-        <!-- วันที่ตามขั้นตอน (คอลัมน์ G, H, I, J, K ในชีท Tracking) -->
-        <div class="p-3.5 bg-slate-50/70 border border-slate-200 rounded-2xl space-y-2.5">
-          <div class="font-semibold text-slate-700 flex items-center justify-between">
+        <!-- วันที่ตามขั้นตอน (ขยายตัวหนังสือทั้ง 6 ลำดับขั้นตอนให้อ่านได้ชัดเจน ตัดเหลือ (G), (H), (I)...) -->
+        <div class="p-4 sm:p-5 bg-slate-50/80 border border-slate-200 rounded-2xl space-y-3">
+          <div class="font-bold text-slate-800 text-sm sm:text-base flex items-center justify-between border-b border-slate-200 pb-2">
             <span>ลำดับขั้นตอนการส่งตรวจ (ชีท Tracking)</span>
-            <span class="text-[10px] text-slate-400">กรอกวันที่ในแต่ละขั้นตอน</span>
+            <span class="text-xs font-normal text-slate-500">กรอกวันที่ในแต่ละขั้นตอน (วัน/เดือน/ปี)</span>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-[11px] text-slate-500 mb-0.5">1. วันที่ส่วนงานส่งงบ (Col G)</label>
-              <input type="date" id="modal-fin-dept-send" onchange="calculateAutoStatus()" class="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <label class="block text-sm sm:text-base font-semibold text-slate-700 mb-1">1. วันที่ส่วนงานส่งงบ (G)</label>
+              <input type="text" id="modal-fin-dept-send" onchange="calculateAutoStatus()" placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm sm:text-base text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
             </div>
             <div>
-              <label class="block text-[11px] text-slate-500 mb-0.5">2. วันที่ผู้ตรวจสอบได้รับงบ (Col H)</label>
-              <input type="date" id="modal-fin-aud-recv" onchange="calculateAutoStatus()" class="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <label class="block text-sm sm:text-base font-semibold text-slate-700 mb-1">2. วันที่ผู้ตรวจรับงบ (H)</label>
+              <input type="text" id="modal-fin-aud-recv" onchange="calculateAutoStatus()" placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm sm:text-base text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
             </div>
             <div>
-              <label class="block text-[11px] text-slate-500 mb-0.5">3. วันที่เสนองบให้หัวหน้างาน (Col I)</label>
-              <input type="date" id="modal-fin-submit-leader" onchange="calculateAutoStatus()" class="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <label class="block text-sm sm:text-base font-semibold text-slate-700 mb-1">3. วันที่เสนองบให้หัวหน้างาน (I)</label>
+              <input type="text" id="modal-fin-submit-leader" onchange="calculateAutoStatus()" placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm sm:text-base text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
             </div>
             <div>
-              <label class="block text-[11px] text-slate-500 mb-0.5">4. วันที่เสนองบให้ผู้อำนวยการ (Col J)</label>
-              <input type="date" id="modal-fin-submit-dean" onchange="calculateAutoStatus()" class="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <label class="block text-sm sm:text-base font-semibold text-slate-700 mb-1">4. วันที่เสนองบให้ ผอ. (J)</label>
+              <input type="text" id="modal-fin-submit-dean" onchange="calculateAutoStatus()" placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm sm:text-base text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
             </div>
             <div>
-              <label class="block text-[11px] text-slate-500 mb-0.5">5. วันที่ ผอ. เห็นชอบ (Col L)</label>
-              <div class="flex gap-1.5">
-                <input type="date" id="modal-fin-dean-approve" onchange="calculateAutoStatus()" class="flex-1 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none">
-                <button type="button" id="btn-dean-approve-quick" onclick="deanApproveNow()" class="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-semibold whitespace-nowrap">
+              <label class="block text-sm sm:text-base font-semibold text-slate-700 mb-1">5. วันที่ ผอ. เห็นชอบ (L)</label>
+              <div class="flex gap-2">
+                <input type="text" id="modal-fin-dean-approve" onchange="calculateAutoStatus()" placeholder="วว/ดด/ปปปป" class="datepicker flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm sm:text-base text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                <button type="button" id="btn-dean-approve-quick" onclick="deanApproveNow()" class="px-3 sm:px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap shadow-sm">
                   ผอ.เห็นชอบ
                 </button>
               </div>
             </div>
             <div>
-              <label class="block text-[11px] text-slate-500 mb-0.5">6. วันที่เสนองบให้อธิการบดี (Col K = เสร็จสิ้น)</label>
-              <input type="date" id="modal-fin-submit-president" onchange="calculateAutoStatus()" class="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <label class="block text-sm sm:text-base font-semibold text-slate-700 mb-1">6. วันที่เสนองบให้อธิการบดี (K)</label>
+              <input type="text" id="modal-fin-submit-president" onchange="calculateAutoStatus()" placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm sm:text-base text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
             </div>
           </div>
         </div>
@@ -1206,7 +1249,18 @@
       trackingList: [],
       editList: [],
       officeList: [],
+      holidays: [],
       configs: { KPI_DAYS: 20 }
+    };
+
+    const initialDateObj = new Date();
+    let currentCalendarMonth = initialDateObj.getMonth(); // 0-11
+    let currentCalendarYear = initialDateObj.getFullYear() + 543; // Thai Buddhist Era e.g. 2569
+    let selectedCalendarDate = {
+      yearBE: currentCalendarYear,
+      yearCE: initialDateObj.getFullYear(),
+      month: initialDateObj.getMonth() + 1,
+      day: initialDateObj.getDate()
     };
 
     let activeDetailTab = 'fin';
@@ -1216,6 +1270,8 @@
     // INITIALIZATION & AUTH GUARD
     // -------------------------------------------------------------
     window.addEventListener('DOMContentLoaded', async () => {
+      initCalendarSelectors();
+      initFlatpickr();
       renderCalendar();
       initGoogleAuth();
 
@@ -1236,6 +1292,128 @@
       // Fetch Real-time Sheets
       await syncAllSheetData(false);
     });
+
+    function initCalendarSelectors() {
+      const mSel = document.getElementById('calendar-select-month');
+      const ySel = document.getElementById('calendar-select-year');
+      if (mSel) mSel.value = currentCalendarMonth;
+      if (ySel) ySel.value = currentCalendarYear;
+    }
+
+    function initFlatpickr() {
+      if (typeof flatpickr !== 'undefined') {
+        flatpickr('.datepicker', {
+          dateFormat: "d/m/Y",
+          locale: "th",
+          allowInput: true,
+          disableMobile: true
+        });
+      }
+    }
+
+    // Helper functions for Date Parsing & Normalization
+    function parseDateComponents(dateVal) {
+      if (!dateVal) return null;
+      if (typeof dateVal === 'object' && dateVal.getFullYear) {
+        let y = dateVal.getFullYear();
+        let yBE = y > 2400 ? y : y + 543;
+        let yCE = y > 2400 ? y - 543 : y;
+        return { yearBE: yBE, yearCE: yCE, month: dateVal.getMonth() + 1, day: dateVal.getDate() };
+      }
+      const str = dateVal.toString().trim();
+      if (!str) return null;
+
+      // GVIZ Date(2569,8,11) format
+      const gvizMatch = str.match(/Date\((\d+),(\d+),(\d+)\)/);
+      if (gvizMatch) {
+        let y = parseInt(gvizMatch[1], 10);
+        let m = parseInt(gvizMatch[2], 10) + 1;
+        let d = parseInt(gvizMatch[3], 10);
+        let yBE = y > 2400 ? y : y + 543;
+        let yCE = y > 2400 ? y - 543 : y;
+        return { yearBE: yBE, yearCE: yCE, month: m, day: d };
+      }
+
+      // YYYY-MM-DD
+      if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(str)) {
+        const parts = str.split('-');
+        let y = parseInt(parts[0], 10);
+        let m = parseInt(parts[1], 10);
+        let d = parseInt(parts[2], 10);
+        let yBE = y > 2400 ? y : y + 543;
+        let yCE = y > 2400 ? y - 543 : y;
+        return { yearBE: yBE, yearCE: yCE, month: m, day: d };
+      }
+
+      // DD/MM/YYYY or DD-MM-YYYY
+      const slashParts = str.split(/[\/\-]/);
+      if (slashParts.length === 3) {
+        if (slashParts[0].length === 4) { // YYYY/MM/DD
+          let y = parseInt(slashParts[0], 10);
+          let m = parseInt(slashParts[1], 10);
+          let d = parseInt(slashParts[2], 10);
+          let yBE = y > 2400 ? y : y + 543;
+          let yCE = y > 2400 ? y - 543 : y;
+          return { yearBE: yBE, yearCE: yCE, month: m, day: d };
+        } else { // DD/MM/YYYY
+          let p1 = parseInt(slashParts[0], 10);
+          let p2 = parseInt(slashParts[1], 10);
+          let y = parseInt(slashParts[2], 10);
+          let yBE = y > 2400 ? y : y + 543;
+          let yCE = y > 2400 ? y - 543 : y;
+          return { yearBE: yBE, yearCE: yCE, month: p2, day: p1 };
+        }
+      }
+      return null;
+    }
+
+    function isSameDay(d1, d2) {
+      if (!d1 || !d2) return false;
+      const c1 = parseDateComponents(d1);
+      const c2 = parseDateComponents(d2);
+      if (!c1 || !c2) return false;
+      return c1.day === c2.day && c1.month === c2.month && (c1.yearBE === c2.yearBE || c1.yearCE === c2.yearCE);
+    }
+
+    function formatInputDate(val) {
+      if (!val) return '';
+      const parsed = parseDateComponents(val);
+      if (parsed) {
+        const d = ('0' + parsed.day).slice(-2);
+        const m = ('0' + parsed.month).slice(-2);
+        return `${d}/${m}/${parsed.yearBE}`;
+      }
+      return val;
+    }
+
+    function isHoliday(day, monthIndex, yearBE) {
+      const monthNum = monthIndex + 1;
+      const monthNames = [
+        'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+      ];
+      const thMonthName = monthNames[monthIndex];
+
+      return (sheetData.holidays || []).find(h => {
+        if (h.year && h.year !== '') {
+          const yVal = parseInt(h.year, 10);
+          if (!isNaN(yVal)) {
+            if (yVal !== yearBE && yVal !== (yearBE - 543)) return false;
+          }
+        }
+        if (h.day !== day) return false;
+        if (h.month) {
+          const mStr = h.month.toString().trim();
+          const mNum = parseInt(mStr, 10);
+          if (!isNaN(mNum)) {
+            if (mNum !== monthNum) return false;
+          } else {
+            if (!mStr.includes(thMonthName) && !thMonthName.includes(mStr)) return false;
+          }
+        }
+        return true;
+      });
+    }
 
     // Global callback for Google GSI
     window.handleGoogleSignInCallback = function(response) {
@@ -1362,13 +1540,14 @@
       if (syncIcon) syncIcon.classList.add('sync-active');
 
       try {
-        const [deptRows, audRows, trackRows, editRows, cfgRows, offRows] = await Promise.all([
+        const [deptRows, audRows, trackRows, editRows, cfgRows, offRows, holRows] = await Promise.all([
           fetchSheetData('ส่วนงาน').catch(e => []),
           fetchSheetData('ผู้ตรวจสอบ').catch(e => []),
           fetchSheetData('Tracking').catch(e => []),
           fetchSheetData('Edit').catch(e => []),
           fetchSheetData('Config').catch(e => []),
-          fetchSheetData('Office').catch(e => [])
+          fetchSheetData('Office').catch(e => []),
+          fetchSheetData('Holiday').catch(e => [])
         ]);
 
         // 1. ส่วนงาน (41 ส่วนงาน)
@@ -1465,23 +1644,40 @@
           }
         });
 
-        // 6. Config
+        // 6. Holiday (วันหยุดนักขัตฤกษ์)
+        // Cols: A:ปี, B:เดือน, C:วันที่, D:วันหยุดอะไร
+        const holidays = [];
+        holRows.forEach(r => {
+          if (r[0] && r[0] !== 'ปี') {
+            holidays.push({
+              year: (r[0] || '').toString().trim(),
+              month: (r[1] || '').toString().trim(),
+              day: parseInt(r[2], 10) || 0,
+              reason: (r[3] || '').toString().trim()
+            });
+          }
+        });
+
+        // 7. Config
         const configs = { KPI_DAYS: 20 };
         cfgRows.forEach(r => {
           if (r[0] && r[0] !== 'Key') configs[r[0]] = parseInt(r[1], 10) || r[1];
         });
 
-        sheetData = { departments, auditors, trackingList, editList, officeList, configs };
+        sheetData = { departments, auditors, trackingList, editList, officeList, holidays, configs };
 
-        // Populate dropdowns & matrix
+        // Populate dropdowns & matrix & calendar
         populatePersonnelDropdowns();
         populateDepartmentFilterDropdown();
         populateAuditorFilterDropdown();
         updateKpiDisplay();
+        renderCalendar();
         renderAttendanceList();
+        renderTodaySummaryCard();
         renderFinanceMatrix();
         renderRecentFinanceTable();
         calculateSummaryKPIs();
+        initFlatpickr();
 
         document.getElementById('matrix-status-footer').textContent = `ดึงข้อมูลสำเร็จ: ${departments.length} ส่วนงาน (${new Date().toLocaleTimeString()} น.)`;
         if (userInitiated) alert('ซิงค์ข้อมูลล่าสุดจาก Google Sheets เรียบร้อยแล้ว!');
@@ -1614,6 +1810,17 @@
       document.getElementById('user-display-name').textContent = `${currentUser.name} (${currentUser.nickname || ''})`;
       document.getElementById('user-display-email').textContent = `${currentUser.email} (${currentUser.role})`;
 
+      // Profile avatar: ดึงจาก Gmail (Google OAuth picture) หรือแสดง Avatar สวยงาม
+      const avatarImg = document.getElementById('user-avatar-img');
+      if (avatarImg) {
+        if (currentUser.picture) {
+          avatarImg.src = currentUser.picture;
+        } else {
+          const initial = encodeURIComponent(currentUser.nickname || currentUser.name || 'User');
+          avatarImg.src = `https://ui-avatars.com/api/?name=${initial}&background=7952E0&color=fff&rounded=true&bold=true`;
+        }
+      }
+
       const adminNav = document.getElementById('nav-btn-admin');
       const payrollNav = document.getElementById('nav-btn-payroll');
 
@@ -1674,42 +1881,156 @@
     }
 
     // -------------------------------------------------------------
-    // CALENDAR & ATTENDANCE ROSTER (ชีท Office)
+    // CALENDAR & ATTENDANCE ROSTER (ชีท Office + ผู้ตรวจสอบ + Holiday)
     // -------------------------------------------------------------
+    function onCalendarMonthYearChange() {
+      const mSel = document.getElementById('calendar-select-month');
+      const ySel = document.getElementById('calendar-select-year');
+      if (mSel) currentCalendarMonth = parseInt(mSel.value, 10);
+      if (ySel) currentCalendarYear = parseInt(ySel.value, 10);
+
+      const yearCE = currentCalendarYear > 2400 ? currentCalendarYear - 543 : currentCalendarYear;
+      selectedCalendarDate = {
+        yearBE: currentCalendarYear,
+        yearCE: yearCE,
+        month: currentCalendarMonth + 1,
+        day: 1
+      };
+
+      renderCalendar();
+      renderAttendanceList();
+      renderTodaySummaryCard();
+    }
+
     function renderCalendar() {
       const container = document.getElementById('calendar-days-container');
       if (!container) return;
       container.innerHTML = '';
-      const totalDays = 31;
-      const startDayOffset = 2; // Jan 2025 starts Wed
 
+      const monthNames = [
+        'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+      ];
+
+      // Update Header Title & Dropdowns
+      const titleEl = document.getElementById('current-month-year-title');
+      if (titleEl) {
+        titleEl.textContent = `${monthNames[currentCalendarMonth]} ${currentCalendarYear}`;
+      }
+      const mSel = document.getElementById('calendar-select-month');
+      const ySel = document.getElementById('calendar-select-year');
+      if (mSel) mSel.value = currentCalendarMonth;
+      if (ySel) ySel.value = currentCalendarYear;
+
+      const yearCE = currentCalendarYear > 2400 ? currentCalendarYear - 543 : currentCalendarYear;
+      const firstDayDate = new Date(yearCE, currentCalendarMonth, 1);
+      // In JS: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+      // Monday-based offset (0=Mon, 1=Tue, ..., 6=Sun)
+      const jsDay = firstDayDate.getDay();
+      const startDayOffset = (jsDay + 6) % 7;
+
+      const daysInMonth = new Date(yearCE, currentCalendarMonth + 1, 0).getDate();
+
+      // Total personnel: ดึงจำนวนคนทั้งหมดจากชีท "ผู้ตรวจสอบ" (ตอนนี้มี 16 คน)
+      const totalAuditors = sheetData.auditors.length || 16;
+
+      // Empty offset slots
       for (let i = 0; i < startDayOffset; i++) {
-        container.innerHTML += `<div class="p-2 border border-slate-50/60 rounded-xl bg-slate-50/30 min-h-[58px]"></div>`;
+        container.innerHTML += `<div class="p-1.5 border border-slate-50/60 rounded-xl bg-slate-50/20 min-h-[58px]"></div>`;
       }
 
-      for (let day = 1; day <= totalDays; day++) {
-        const isToday = day === 2;
-        let content = '';
-        if (day === 2) {
-          content = `
+      const todayObj = new Date();
+      const isCurrentMonth = todayObj.getMonth() === currentCalendarMonth && 
+        ((todayObj.getFullYear() + 543) === currentCalendarYear || todayObj.getFullYear() === currentCalendarYear);
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const curDate = new Date(yearCE, currentCalendarMonth, day);
+        const dayOfWeek = curDate.getDay(); // 0 = Sun, 6 = Sat
+        const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+        const holiday = isHoliday(day, currentCalendarMonth, currentCalendarYear);
+
+        const isToday = isCurrentMonth && (todayObj.getDate() === day);
+        const isSelected = selectedCalendarDate && 
+          selectedCalendarDate.day === day && 
+          selectedCalendarDate.month === (currentCalendarMonth + 1) && 
+          (selectedCalendarDate.yearBE === currentCalendarYear || selectedCalendarDate.yearCE === yearCE);
+
+        let attendanceBadges = '';
+
+        if (isWeekend) {
+          // วันเสาร์อาทิตย์: ไม่ต้องแสดงจำนวนคนเข้า office ให้เป็นช่องว่าง
+          attendanceBadges = '';
+        } else if (holiday) {
+          // วันหยุดนักขัตฤกษ์: ไม่ต้องแสดงจำนวนคนเข้า office
+          attendanceBadges = `
+            <div class="mt-1 text-[9px] text-red-500 font-medium truncate" title="${holiday.reason}">
+              🎌 ${holiday.reason || 'วันหยุด'}
+            </div>
+          `;
+        } else {
+          // วันทำงานปกติ: สันนิษฐานเบื้องต้นเข้า Office ทั้งหมด (16 คน)
+          // หักลบคนที่ Col D ไม่ใช่ "เข้า Office"
+          const dayDateObj = { yearBE: currentCalendarYear, yearCE: yearCE, month: currentCalendarMonth + 1, day: day };
+          
+          const dayOffices = sheetData.officeList.filter(o => isSameDay(o.date, dayDateObj));
+
+          let nonOfficeAm = 0;
+          let nonOfficePm = 0;
+
+          dayOffices.forEach(rec => {
+            if (rec.workType && rec.workType !== 'เข้า Office') {
+              if (rec.session === 'เช้า') nonOfficeAm++;
+              else if (rec.session === 'บ่าย') nonOfficePm++;
+              else {
+                nonOfficeAm++;
+                nonOfficePm++;
+              }
+            }
+          });
+
+          const officeAm = Math.max(0, totalAuditors - nonOfficeAm);
+          const officePm = Math.max(0, totalAuditors - nonOfficePm);
+
+          attendanceBadges = `
             <div class="mt-1 text-[10px] space-y-0.5">
-              <div class="bg-purple-100 text-brand-700 font-semibold px-1 py-0.2 rounded">เช้า 12</div>
-              <div class="bg-indigo-100 text-indigo-700 font-semibold px-1 py-0.2 rounded">บ่าย 16</div>
+              <div class="bg-purple-100 text-brand-700 font-semibold px-1 py-0.2 rounded truncate">เช้า ${officeAm} คน</div>
+              <div class="bg-indigo-100 text-indigo-700 font-semibold px-1 py-0.2 rounded truncate">บ่าย ${officePm} คน</div>
             </div>
           `;
         }
 
+        let borderClasses = 'border-slate-100 hover:border-brand-300';
+        if (isSelected) {
+          borderClasses = 'border-brand-500 bg-brand-50/60 ring-2 ring-brand-500/50 shadow-sm';
+        } else if (isToday) {
+          borderClasses = 'border-brand-400 bg-purple-50/30 ring-1 ring-brand-400';
+        } else if (isWeekend) {
+          borderClasses = 'border-slate-100 bg-slate-50/50';
+        }
+
         container.innerHTML += `
-          <div onclick="selectCalendarDay(${day})" class="p-1.5 border ${isToday ? 'border-brand-500 bg-brand-50/40 ring-1 ring-brand-500' : 'border-slate-100 hover:border-brand-200'} rounded-xl transition-all min-h-[58px] cursor-pointer flex flex-col justify-between">
-            <span class="font-medium text-slate-700 text-[11px]">${day}</span>
-            ${content}
+          <div onclick="onSelectCalendarDate(${day})" class="p-1.5 border ${borderClasses} rounded-xl transition-all min-h-[58px] cursor-pointer flex flex-col justify-between select-none">
+            <div class="flex items-center justify-between">
+              <span class="font-bold ${isWeekend ? 'text-slate-400' : 'text-slate-700'} text-[11px]">${day}</span>
+              ${isToday ? '<span class="w-1.5 h-1.5 rounded-full bg-brand-500" title="วันนี้"></span>' : ''}
+            </div>
+            ${attendanceBadges}
           </div>
         `;
       }
     }
 
-    function selectCalendarDay(day) {
-      alert(`ดูข้อมูลวันที่ ${day} มกราคม 2568`);
+    function onSelectCalendarDate(day) {
+      const yearCE = currentCalendarYear > 2400 ? currentCalendarYear - 543 : currentCalendarYear;
+      selectedCalendarDate = {
+        yearBE: currentCalendarYear,
+        yearCE: yearCE,
+        month: currentCalendarMonth + 1,
+        day: day
+      };
+      renderCalendar();
+      renderAttendanceList();
+      renderTodaySummaryCard();
     }
 
     function renderAttendanceList() {
@@ -1717,23 +2038,37 @@
       if (!container) return;
       container.innerHTML = '';
 
+      const monthNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+      const dateLabel = selectedCalendarDate ? `${selectedCalendarDate.day} ${monthNames[selectedCalendarDate.month - 1]} ${selectedCalendarDate.yearBE}` : '';
+
+      const headerTitle = document.getElementById('attendance-roster-title');
+      if (headerTitle) {
+        headerTitle.textContent = `รายชื่อบุคลากร (แยกตามกลุ่มงาน) - ${dateLabel}`;
+      }
+
       let visible = sheetData.auditors;
       if (currentUser && currentUser.role !== 'dean' && currentUser.role !== 'admin') {
         visible = sheetData.auditors.filter(p => p.group === currentUser.group || (p.role && p.role.toLowerCase() === 'dean'));
       }
 
-      const groups = ['ผู้บริหาร', 'งานตรวจสอบ 1', 'งานตรวจสอบ 2', 'งานตรวจสอบ 3', 'งานบริหารและธุรการ'];
-      let statOfficeAm = 0, statOfficePm = 0;
-      let statLeaveAm = 0, statLeavePm = 0;
-      let statWfaAm = 0, statWfaPm = 0;
-      let statTrainAm = 0, statTrainPm = 0;
+      // ดึงรายชื่อกลุ่มงานจาก sheet "ผู้ตรวจสอบ" Col E
+      const allGroups = [...new Set(sheetData.auditors.map(a => a.group).filter(Boolean))];
+      const preferredOrder = ['ผู้บริหาร', 'งานตรวจสอบ 1', 'งานตรวจสอบ 2', 'งานตรวจสอบ 3', 'งานบริหารและธุรการ'];
+      const sortedGroups = allGroups.sort((a, b) => {
+        const ia = preferredOrder.indexOf(a);
+        const ib = preferredOrder.indexOf(b);
+        if (ia !== -1 && ib !== -1) return ia - ib;
+        if (ia !== -1) return -1;
+        if (ib !== -1) return 1;
+        return a.localeCompare(b);
+      });
 
-      groups.forEach(gName => {
+      sortedGroups.forEach(gName => {
         const members = visible.filter(p => p.group === gName);
         if (members.length === 0) return;
 
         let gHtml = `
-          <div>
+          <div class="mb-3">
             <div class="text-[11px] font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
               <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
               <span>${gName}</span>
@@ -1742,23 +2077,21 @@
         `;
 
         members.forEach(p => {
-          // Look up attendance from sheet "Office"
-          const offAm = sheetData.officeList.find(o => o.userCode === p.code && o.session === 'เช้า');
-          const offPm = sheetData.officeList.find(o => o.userCode === p.code && o.session === 'บ่าย');
+          // ดึงชื่อมาจากชีท ผู้ตรวจสอบ คอลัมน์ C (ชื่อเล่น)
+          const displayName = p.nickname || p.name;
 
-          const amStatus = offAm ? offAm.workType : 'เข้า Office';
-          const pmStatus = offPm ? offPm.workType : 'เข้า Office';
+          // ตรวจสอบการเข้างานใน selectedCalendarDate
+          const userRecords = sheetData.officeList.filter(o => 
+            (o.userCode === p.code || o.userCode === p.nickname || o.userCode === p.name) && 
+            isSameDay(o.date, selectedCalendarDate)
+          );
 
-          // Tally stats
-          if (amStatus === 'เข้า Office') statOfficeAm++;
-          else if (amStatus === 'ลา') statLeaveAm++;
-          else if (amStatus === 'WFA') statWfaAm++;
-          else if (amStatus === 'ประชุม/อบรม') statTrainAm++;
+          const amRec = userRecords.find(o => o.session === 'เช้า');
+          const pmRec = userRecords.find(o => o.session === 'บ่าย');
 
-          if (pmStatus === 'เข้า Office') statOfficePm++;
-          else if (pmStatus === 'ลา') statLeavePm++;
-          else if (pmStatus === 'WFA') statWfaPm++;
-          else if (pmStatus === 'ประชุม/อบรม') statTrainPm++;
+          // สันนิษฐานเบื้องต้นเข้า Office ตามปกติ
+          const amStatus = amRec ? amRec.workType : 'เข้า Office';
+          const pmStatus = pmRec ? pmRec.workType : 'เข้า Office';
 
           const isMe = currentUser && (p.code === currentUser.code || p.email === currentUser.email);
           const dotColor = getWorkTypeDotColor(amStatus);
@@ -1767,7 +2100,7 @@
             <div class="flex items-center justify-between py-1 text-xs hover:bg-slate-50 px-1.5 rounded-lg transition-all ${isMe ? 'bg-brand-50/70 border-l-2 border-brand-500' : ''}">
               <div class="flex items-center gap-2">
                 <span class="status-dot ${dotColor}"></span>
-                <span class="font-medium text-slate-700">${p.nickname || p.name}</span>
+                <span class="font-medium text-slate-700">${displayName}</span>
                 ${isMe ? '<span class="text-[9px] bg-brand-200 text-brand-900 px-1 rounded font-bold">ฉัน</span>' : ''}
               </div>
               <div class="flex items-center gap-3 text-[11px]">
@@ -1781,16 +2114,52 @@
         gHtml += `</div></div>`;
         container.innerHTML += gHtml;
       });
+    }
 
-      // Update Today Summary Counts
-      if (document.getElementById('stat-office-am')) document.getElementById('stat-office-am').textContent = statOfficeAm || 12;
-      if (document.getElementById('stat-office-pm')) document.getElementById('stat-office-pm').textContent = statOfficePm || 16;
-      if (document.getElementById('stat-leave-am')) document.getElementById('stat-leave-am').textContent = statLeaveAm || 2;
-      if (document.getElementById('stat-leave-pm')) document.getElementById('stat-leave-pm').textContent = statLeavePm || 2;
-      if (document.getElementById('stat-train-am')) document.getElementById('stat-train-am').textContent = statTrainAm || 4;
-      if (document.getElementById('stat-train-pm')) document.getElementById('stat-train-pm').textContent = statTrainPm || '-';
-      if (document.getElementById('stat-wfa-am')) document.getElementById('stat-wfa-am').textContent = statWfaAm || 1;
-      if (document.getElementById('stat-wfa-pm')) document.getElementById('stat-wfa-pm').textContent = statWfaPm || 1;
+    function renderTodaySummaryCard() {
+      const totalAuditors = sheetData.auditors.length || 16;
+      const monthNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
+      const titleEl = document.getElementById('summary-card-title');
+      if (titleEl && selectedCalendarDate) {
+        titleEl.textContent = `สรุปการเข้างาน (${selectedCalendarDate.day} ${monthNames[selectedCalendarDate.month - 1]} ${selectedCalendarDate.yearBE})`;
+      }
+
+      const dayRecords = sheetData.officeList.filter(o => isSameDay(o.date, selectedCalendarDate));
+
+      let leaveAm = 0, leavePm = 0;
+      let trainAm = 0, trainPm = 0;
+      let wfaAm = 0, wfaPm = 0;
+
+      dayRecords.forEach(r => {
+        const wt = r.workType;
+        const sess = r.session;
+        if (wt === 'ลา') {
+          if (sess === 'เช้า') leaveAm++;
+          else if (sess === 'บ่าย') leavePm++;
+          else { leaveAm++; leavePm++; }
+        } else if (wt === 'WFA') {
+          if (sess === 'เช้า') wfaAm++;
+          else if (sess === 'บ่าย') wfaPm++;
+          else { wfaAm++; wfaPm++; }
+        } else if (wt === 'ประชุม/อบรม' || wt === 'ประชุม' || wt === 'อบรม') {
+          if (sess === 'เช้า') trainAm++;
+          else if (sess === 'บ่าย') trainPm++;
+          else { trainAm++; trainPm++; }
+        }
+      });
+
+      const officeAm = Math.max(0, totalAuditors - (leaveAm + trainAm + wfaAm));
+      const officePm = Math.max(0, totalAuditors - (leavePm + trainPm + wfaPm));
+
+      if (document.getElementById('stat-office-am')) document.getElementById('stat-office-am').textContent = officeAm;
+      if (document.getElementById('stat-office-pm')) document.getElementById('stat-office-pm').textContent = officePm;
+      if (document.getElementById('stat-leave-am')) document.getElementById('stat-leave-am').textContent = leaveAm;
+      if (document.getElementById('stat-leave-pm')) document.getElementById('stat-leave-pm').textContent = leavePm;
+      if (document.getElementById('stat-train-am')) document.getElementById('stat-train-am').textContent = trainAm;
+      if (document.getElementById('stat-train-pm')) document.getElementById('stat-train-pm').textContent = trainPm;
+      if (document.getElementById('stat-wfa-am')) document.getElementById('stat-wfa-am').textContent = wfaAm;
+      if (document.getElementById('stat-wfa-pm')) document.getElementById('stat-wfa-pm').textContent = wfaPm;
     }
 
     function getWorkTypeDotColor(type) {
@@ -1816,13 +2185,16 @@
       const pSel = document.getElementById('modal-att-person');
 
       if (dateInp && !dateInp.value) {
-        dateInp.value = new Date().toISOString().split('T')[0];
+        const todayD = ('0' + selectedCalendarDate.day).slice(-2);
+        const todayM = ('0' + selectedCalendarDate.month).slice(-2);
+        dateInp.value = `${todayD}/${todayM}/${selectedCalendarDate.yearBE}`;
       }
       if (currentUser && pSel) {
         pSel.value = currentUser.code;
         updateAttPersonCode();
       }
       if (modal) modal.classList.remove('hidden');
+      initFlatpickr();
     }
 
     function closeAttendanceModal() {
@@ -2064,14 +2436,44 @@
       });
     }
 
+    const THAI_MONTH_MAP = {
+      '10': { name: 'ตุลาคม', short: 'ต.ค.', aliases: ['ตุลาคม', 'ต.ค.', '10'] },
+      '11': { name: 'พฤศจิกายน', short: 'พ.ย.', aliases: ['พฤศจิกายน', 'พ.ย.', '11'] },
+      '12': { name: 'ธันวาคม', short: 'ธ.ค.', aliases: ['ธันวาคม', 'ธ.ค.', '12'] },
+      '01': { name: 'มกราคม', short: 'ม.ค.', aliases: ['มกราคม', 'ม.ค.', '1', '01'] },
+      '02': { name: 'กุมภาพันธ์', short: 'ก.พ.', aliases: ['กุมภาพันธ์', 'ก.พ.', '2', '02'] },
+      '03': { name: 'มีนาคม', short: 'มี.ค.', aliases: ['มีนาคม', 'มี.ค.', '3', '03'] },
+      '04': { name: 'เมษายน', short: 'เม.ย.', aliases: ['เมษายน', 'เม.ย.', '4', '04'] },
+      '05': { name: 'พฤษภาคม', short: 'พ.ค.', aliases: ['พฤษภาคม', 'พ.ค.', '5', '05'] },
+      '06': { name: 'มิถุนายน', short: 'มิ.ย.', aliases: ['มิถุนายน', 'มิ.ย.', '6', '06'] },
+      '07': { name: 'กรกฎาคม', short: 'ก.ค.', aliases: ['กรกฎาคม', 'ก.ค.', '7', '07'] },
+      '08': { name: 'สิงหาคม', short: 'ส.ค.', aliases: ['สิงหาคม', 'ส.ค.', '8', '08'] },
+      '09': { name: 'กันยายน', short: 'ก.ย.', aliases: ['กันยายน', 'ก.ย.', '9', '09'] }
+    };
+
     function renderMonthCellByRule(tracks, dept, monthKey, isQuarter = false, quarterName = '') {
-      let matching = tracks.find(t => (t.periodKey && t.periodKey.toString().includes(monthKey)) || (t.period && (t.period.includes(monthKey) || (quarterName && t.period.includes(quarterName)))));
-      
+      const isQuarterlyDept = (dept.cycle === 'รายไตรมาส');
+      const monthMeta = THAI_MONTH_MAP[monthKey] || { name: '', aliases: [monthKey] };
+      const periodLabel = isQuarterlyDept && quarterName ? quarterName : monthMeta.name;
+
+      if (isQuarterlyDept && !isQuarter) {
+        return `<td class="py-3 px-2 text-center text-slate-300">-</td>`;
+      }
+
+      let matching = tracks.find(t => {
+        const p = (t.period || '').trim();
+        const pk = (t.periodKey || '').trim();
+        if (isQuarterlyDept && quarterName) {
+          if (p.includes(quarterName) || pk.includes(quarterName)) return true;
+        }
+        return monthMeta.aliases.some(alias => p.includes(alias) || pk.includes(alias));
+      });
+
       const st = getStatusRule(matching);
       const bgClass = isQuarter ? 'bg-purple-50/50' : '';
       return `
-        <td class="py-3 px-2 text-center ${bgClass}">
-          <span class="w-2.5 h-2.5 rounded-full ${st.dot} inline-block" title="สถานะ ${st.code}: ${st.label}"></span>
+        <td class="py-3 px-2 text-center ${bgClass}" onclick="event.stopPropagation(); openFinanceModal('${dept.name}', '${periodLabel}')" title="${dept.name} (${periodLabel}): สถานะ ${st.code} ${st.label}">
+          <span class="w-2.5 h-2.5 rounded-full ${st.dot} inline-block hover:scale-125 transition-transform" role="button"></span>
         </td>
       `;
     }
@@ -2079,7 +2481,7 @@
     // -------------------------------------------------------------
     // FINANCE FORM & MODAL (MATCHING USER SPECIFICATION)
     // -------------------------------------------------------------
-    function openFinanceModal(defaultDeptName = '') {
+    function openFinanceModal(defaultDeptName = '', defaultPeriod = '') {
       const modal = document.getElementById('finance-modal');
       const deptSel = document.getElementById('modal-fin-dept');
       
@@ -2091,10 +2493,10 @@
 
       if (defaultDeptName) {
         deptSel.value = defaultDeptName;
-        onDepartmentSelectChange();
+        onDepartmentSelectChange(defaultPeriod);
       } else if (sheetData.departments.length > 0) {
         deptSel.selectedIndex = 1;
-        onDepartmentSelectChange();
+        onDepartmentSelectChange(defaultPeriod);
       }
 
       // Configure Dean Edit Section visibility
@@ -2114,6 +2516,7 @@
       `;
 
       modal.classList.remove('hidden');
+      initFlatpickr();
     }
 
     function closeFinanceModal() {
@@ -2122,7 +2525,7 @@
     }
 
     // Auto-pull auditor from sheet "ส่วนงาน" and switch period options
-    function onDepartmentSelectChange() {
+    function onDepartmentSelectChange(targetPeriod = '') {
       const deptName = document.getElementById('modal-fin-dept').value;
       const audInp = document.getElementById('modal-fin-auditor');
       const cycleInp = document.getElementById('modal-fin-cycle');
@@ -2153,43 +2556,88 @@
         months.forEach(m => periodSel.innerHTML += `<option value="${m}">${m}</option>`);
       }
 
+      if (targetPeriod) {
+        periodSel.value = targetPeriod;
+      }
+
       // Check if existing tracking record exists
       loadExistingTrackingForDept(dept.name, periodSel.value);
     }
 
     function loadExistingTrackingForDept(deptName, period) {
       const fy = document.getElementById('modal-fin-year').value;
-      const found = sheetData.trackingList.find(t => t.department === deptName && t.fiscalYear === fy && t.period === period);
+      const found = sheetData.trackingList.find(t => 
+        t.department === deptName && 
+        (t.fiscalYear || '').toString() === (fy || '').toString() && 
+        (t.period === period || (t.periodKey && t.periodKey.includes(period)))
+      );
+
+      const setDateInp = (id, val) => {
+        const inp = document.getElementById(id);
+        if (!inp) return;
+        const formatted = formatInputDate(val);
+        inp.value = formatted;
+        if (inp._flatpickr) {
+          inp._flatpickr.setDate(formatted, false);
+        }
+      };
 
       if (found) {
-        document.getElementById('modal-fin-dept-send').value = formatInputDate(found.dateReceivedFromDept);
-        document.getElementById('modal-fin-aud-recv').value = formatInputDate(found.dateAuditorReceived);
-        document.getElementById('modal-fin-submit-leader').value = formatInputDate(found.dateSubmittedToLeader);
-        document.getElementById('modal-fin-submit-dean').value = formatInputDate(found.dateSubmittedToDean);
-        document.getElementById('modal-fin-submit-president').value = formatInputDate(found.dateSubmittedToPresident);
-        document.getElementById('modal-fin-dean-approve').value = formatInputDate(found.dateDeanApproved);
+        setDateInp('modal-fin-dept-send', found.dateReceivedFromDept);
+        setDateInp('modal-fin-aud-recv', found.dateAuditorReceived);
+        setDateInp('modal-fin-submit-leader', found.dateSubmittedToLeader);
+        setDateInp('modal-fin-submit-dean', found.dateSubmittedToDean);
+        setDateInp('modal-fin-submit-president', found.dateSubmittedToPresident);
+        setDateInp('modal-fin-dean-approve', found.dateDeanApproved);
+
+        // Load existing edit rounds if any
+        const edits = sheetData.editList.filter(e => e.trackingId === found.trackingId);
+        if (edits.length > 0) {
+          const container = document.getElementById('edit-rounds-container');
+          container.innerHTML = '';
+          editRoundCounter = 0;
+          edits.forEach(e => {
+            editRoundCounter++;
+            const rowId = `edit-round-row-${editRoundCounter}`;
+            const retDate = formatInputDate(e.dateReturned);
+            const resDate = formatInputDate(e.dateResubmitted);
+            container.innerHTML += `
+              <div id="${rowId}" class="p-3 bg-white border border-amber-200 rounded-xl space-y-2 text-xs">
+                <div class="flex items-center justify-between font-bold text-amber-800">
+                  <span>แก้ไขครั้งที่ ${e.round || editRoundCounter}</span>
+                  <span class="text-[10px] text-slate-400">คำนวณวันอัตโนมัติ</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-[10px] text-slate-500 mb-0.5">วันที่ส่งกลับให้แก้ (Col D)</label>
+                    <input type="text" id="edit-date-return-${editRoundCounter}" value="${retDate}" placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-800 focus:outline-none">
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-slate-500 mb-0.5">วันที่ส่งคืน ผอ. (Col E)</label>
+                    <input type="text" id="edit-date-resubmit-${editRoundCounter}" value="${resDate}" placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-800 focus:outline-none">
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <input type="text" id="edit-note-${editRoundCounter}" value="${e.note || ''}" placeholder="หมายเหตุข้อสังเกตการแก้ไข" class="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-800 focus:outline-none">
+                  <span class="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded-lg whitespace-nowrap">
+                    รวม: <span id="edit-days-label-${editRoundCounter}">${e.daysUsed || 0}</span> วัน
+                  </span>
+                </div>
+              </div>
+            `;
+          });
+          initFlatpickr();
+        }
       } else {
-        document.getElementById('modal-fin-dept-send').value = '';
-        document.getElementById('modal-fin-aud-recv').value = '';
-        document.getElementById('modal-fin-submit-leader').value = '';
-        document.getElementById('modal-fin-submit-dean').value = '';
-        document.getElementById('modal-fin-submit-president').value = '';
-        document.getElementById('modal-fin-dean-approve').value = '';
+        setDateInp('modal-fin-dept-send', '');
+        setDateInp('modal-fin-aud-recv', '');
+        setDateInp('modal-fin-submit-leader', '');
+        setDateInp('modal-fin-submit-dean', '');
+        setDateInp('modal-fin-submit-president', '');
+        setDateInp('modal-fin-dean-approve', '');
       }
 
       calculateAutoStatus();
-    }
-
-    function formatInputDate(val) {
-      if (!val) return '';
-      if (val.includes('-')) return val; // yyyy-mm-dd
-      const parts = val.split('/');
-      if (parts.length === 3) {
-        let yr = parseInt(parts[2], 10);
-        if (yr > 2400) yr -= 543;
-        return `${yr}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-      }
-      return val;
     }
 
     // Dynamic Status Recalculation inside Modal
@@ -2250,8 +2698,16 @@
     }
 
     function deanApproveNow() {
-      const today = new Date().toISOString().split('T')[0];
-      document.getElementById('modal-fin-dean-approve').value = today;
+      const now = new Date();
+      const d = ('0' + now.getDate()).slice(-2);
+      const m = ('0' + (now.getMonth() + 1)).slice(-2);
+      const yBE = now.getFullYear() + 543;
+      const todayStr = `${d}/${m}/${yBE}`;
+      const inp = document.getElementById('modal-fin-dean-approve');
+      if (inp) {
+        inp.value = todayStr;
+        if (inp._flatpickr) inp._flatpickr.setDate(todayStr, false);
+      }
       calculateAutoStatus();
       alert('บันทึกการเห็นชอบของ ผอ. ลงในช่องเรียบร้อยแล้ว (กดบันทึกเพื่อส่งเข้าชีท Tracking)');
     }
@@ -2275,11 +2731,11 @@
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block text-[10px] text-slate-500 mb-0.5">วันที่ส่งกลับให้ผู้ตรวจสอบแก้ (Col D)</label>
-              <input type="date" id="edit-date-return-${editRoundCounter}" onchange="calcEditDays(${editRoundCounter})" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-500">
+              <input type="text" id="edit-date-return-${editRoundCounter}" onchange="calcEditDays(${editRoundCounter})" placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-500">
             </div>
             <div>
               <label class="block text-[10px] text-slate-500 mb-0.5">วันที่ส่งกลับหา ผอ. (Col E)</label>
-              <input type="date" id="edit-date-resubmit-${editRoundCounter}" onchange="calcEditDays(${editRoundCounter})" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-500">
+              <input type="text" id="edit-date-resubmit-${editRoundCounter}" onchange="calcEditDays(${editRoundCounter})" placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-500">
             </div>
           </div>
 
@@ -2293,6 +2749,7 @@
       `;
 
       container.insertAdjacentHTML('beforeend', rowHtml);
+      initFlatpickr();
       calculateAutoStatus();
     }
 
@@ -2302,10 +2759,14 @@
       const label = document.getElementById(`edit-days-label-${roundNum}`);
 
       if (dRet && dRes) {
-        const t1 = new Date(dRet);
-        const t2 = new Date(dRes);
-        const diff = Math.max(0, Math.round((t2 - t1) / (86400000)));
-        label.textContent = diff;
+        const c1 = parseDateComponents(dRet);
+        const c2 = parseDateComponents(dRes);
+        if (c1 && c2) {
+          const t1 = new Date(c1.yearCE, c1.month - 1, c1.day);
+          const t2 = new Date(c2.yearCE, c2.month - 1, c2.day);
+          const diff = Math.max(0, Math.round((t2 - t1) / (86400000)));
+          label.textContent = diff;
+        }
       }
     }
 
@@ -2329,10 +2790,18 @@
       btn.disabled = true;
       btn.textContent = 'กำลังบันทึกลงชีท Tracking & Edit...';
 
+      const existing = sheetData.trackingList.find(t => 
+        t.department === deptName && 
+        (t.fiscalYear || '').toString() === fy.toString() && 
+        t.period === period
+      );
+      const trackingId = (existing && existing.trackingId) ? existing.trackingId : `FR-${fy}-${deptName}`;
+
       const trackingPayload = {
         action: 'saveTracking',
         email: currentUser ? currentUser.email : '',
         trackingData: {
+          trackingId: trackingId,
           cycle: cycle,
           period: period,
           fiscalYear: fy,
@@ -2353,9 +2822,13 @@
         await sendToAppsScript(trackingPayload);
 
         // Update local tracking in memory immediately
-        const existingTrackIdx = sheetData.trackingList.findIndex(t => t.department === deptName && t.fiscalYear === fy && t.period === period);
+        const existingTrackIdx = sheetData.trackingList.findIndex(t => 
+          t.department === deptName && 
+          (t.fiscalYear || '').toString() === fy.toString() && 
+          t.period === period
+        );
         const newTrackObj = {
-          trackingId: `FR-${fy}-${deptName}`,
+          trackingId: trackingId,
           cycle: cycle,
           period: period,
           fiscalYear: fy,
@@ -2386,7 +2859,7 @@
               action: 'saveEditRound',
               email: currentUser ? currentUser.email : '',
               editData: {
-                trackingId: `FR-${fy}-${deptName}`,
+                trackingId: trackingId,
                 round: r,
                 dateReturned: retInp.value,
                 dateResubmitted: resInp ? resInp.value : '',
@@ -2396,7 +2869,7 @@
             await sendToAppsScript(editPayload);
             sheetData.editList.push({
               editId: `ED-${r}`,
-              trackingId: `FR-${fy}-${deptName}`,
+              trackingId: trackingId,
               round: r,
               dateReturned: retInp.value,
               dateResubmitted: resInp ? resInp.value : '',
@@ -2620,17 +3093,17 @@
 
     const DETAIL_RECORDS = {
       fin: [
-        { date: '01/21/25 • 12:22 am', person: 'Billie McCalister', amount: '$220.00', cat: 'Expend', note: 'Phone Repair', status: 'Approved' },
-        { date: '01/21/25 • 09:22 am', person: 'Alexandria Mora', amount: '$100.00', cat: 'Income', note: 'Investment', status: 'Completed' },
-        { date: '01/21/25 • 08:30 am', person: 'Tamara Lee', amount: '$500.00', cat: 'Income', note: 'Freelance Job', status: 'Completed' }
+        { date: '21/01/2568 • 12:22 น.', person: 'Billie McCalister', amount: '฿7,200.00', cat: 'Expend', note: 'Phone Repair', status: 'Approved' },
+        { date: '21/01/2568 • 09:22 น.', person: 'Alexandria Mora', amount: '฿3,500.00', cat: 'Income', note: 'Investment', status: 'Completed' },
+        { date: '21/01/2568 • 08:30 น.', person: 'Tamara Lee', amount: '฿16,000.00', cat: 'Income', note: 'Freelance Job', status: 'Completed' }
       ],
       train: [
-        { date: '01/15/25 • 09:00 am', person: 'เพลินพิศ (เพลิน)', amount: '6 ชม.', cat: 'อบรมวิชาชีพ', note: 'มาตรฐาน IIA 2025', status: 'ผ่านการอบรม' },
-        { date: '01/10/25 • 01:30 pm', person: 'ทิมจิ', amount: '3 ชม.', cat: 'สัมมนา', note: 'การตรวจสอบไซเบอร์', status: 'ผ่านการอบรม' }
+        { date: '15/01/2568 • 09:00 น.', person: 'เพลินพิศ (เพลิน)', amount: '6 ชม.', cat: 'อบรมวิชาชีพ', note: 'มาตรฐาน IIA 2025', status: 'ผ่านการอบรม' },
+        { date: '10/01/2568 • 13:30 น.', person: 'กิมจิ', amount: '3 ชม.', cat: 'สัมมนา', note: 'การตรวจสอบไซเบอร์', status: 'ผ่านการอบรม' }
       ],
       pay: [
-        { date: '25/01/25', person: 'ผอ. หยก', amount: '฿85,000.00', cat: 'เงินเดือน', note: 'เงินเดือน + ค่าตอบแทน', status: 'โอนสำเร็จ' },
-        { date: '25/01/25', person: 'เพลินพิศ (เพลิน)', amount: '฿42,500.00', cat: 'เงินเดือน', note: 'เงินเดือน ม.ค. 2568', status: 'โอนสำเร็จ' }
+        { date: '25/01/2568', person: 'ผอ. หยก', amount: '฿85,000.00', cat: 'เงินเดือน', note: 'เงินเดือน + ค่าตอบแทน', status: 'โอนสำเร็จ' },
+        { date: '25/01/2568', person: 'เพลินพิศ (เพลิน)', amount: '฿42,500.00', cat: 'เงินเดือน', note: 'เงินเดือน ม.ค. 2568', status: 'โอนสำเร็จ' }
       ]
     };
 

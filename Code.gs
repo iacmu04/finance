@@ -13,7 +13,8 @@ const SHEETS = {
   EDIT: 'Edit',
   CONFIG: 'Config',
   SYSTEM_LOG: 'SystemLog',
-  OFFICE: 'Office'
+  OFFICE: 'Office',
+  HOLIDAY: 'Holiday'
 };
 
 /**
@@ -516,11 +517,23 @@ function saveTracking(item, email) {
     let rowIndex = -1;
     let oldDataStr = '';
 
-    // หากมี trackingId ให้หาแถวเดิม
+    // หากมี trackingId ให้หาแถวเดิม หรือค้นหาจาก ส่วนงาน + งวด + ปีงบประมาณ
     if (item.trackingId) {
       for (let i = 1; i < data.length; i++) {
         if (data[i][0] && data[i][0].toString().trim() === item.trackingId.trim()) {
           rowIndex = i + 1;
+          oldDataStr = JSON.stringify(data[i]);
+          break;
+        }
+      }
+    }
+    if (rowIndex === -1 && item.department && item.period && item.fiscalYear) {
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][4] && data[i][4].toString().trim() === item.department.trim() &&
+            data[i][2] && data[i][2].toString().trim() === item.period.trim() &&
+            data[i][3] && data[i][3].toString().trim() === item.fiscalYear.toString().trim()) {
+          rowIndex = i + 1;
+          item.trackingId = data[i][0];
           oldDataStr = JSON.stringify(data[i]);
           break;
         }
@@ -1092,14 +1105,28 @@ function parseDateInput(str) {
   str = str.toString().trim();
   if (str === '') return '';
 
-  // รูปแบบ dd/mm/yyyy (พ.ศ. หรือ ค.ศ.)
+  // ตรวจสอบรูปแบบ YYYY-MM-DD
+  if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(str)) {
+    const parts = str.split('-');
+    let y = parseInt(parts[0], 10);
+    if (y > 2400) y -= 543;
+    return new Date(y, parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  }
+
+  // รูปแบบ dd/mm/yyyy หรือ dd-mm-yyyy (พ.ศ. หรือ ค.ศ.)
   const parts = str.split(/[\/\-]/);
   if (parts.length === 3) {
-    let day = parseInt(parts[0], 10);
-    let month = parseInt(parts[1], 10) - 1;
-    let year = parseInt(parts[2], 10);
-    if (year > 2400) year -= 543; // แปลง พ.ศ. เป็น ค.ศ.
-    return new Date(year, month, day);
+    if (parts[0].length === 4) { // YYYY/MM/DD
+      let y = parseInt(parts[0], 10);
+      if (y > 2400) y -= 543;
+      return new Date(y, parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    } else { // DD/MM/YYYY
+      let day = parseInt(parts[0], 10);
+      let month = parseInt(parts[1], 10) - 1;
+      let year = parseInt(parts[2], 10);
+      if (year > 2400) year -= 543; // แปลง พ.ศ. เป็น ค.ศ.
+      return new Date(year, month, day);
+    }
   }
 
   const d = new Date(str);
