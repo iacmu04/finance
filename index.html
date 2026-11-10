@@ -1315,8 +1315,42 @@
           dateFormat: "d/m/Y",
           locale: "th",
           allowInput: true,
-          disableMobile: true
+          disableMobile: true,
+          formatDate: function(date, format, locale) {
+            const d = ('0' + date.getDate()).slice(-2);
+            const m = ('0' + (date.getMonth() + 1)).slice(-2);
+            const y = date.getFullYear() + 543;
+            return `${d}/${m}/${y}`;
+          },
+          parseDate: function(datestr, format) {
+            if (!datestr) return null;
+            const parsed = parseDateComponents(datestr);
+            if (parsed) {
+              return new Date(parsed.yearCE, parsed.month - 1, parsed.day);
+            }
+            return new Date(datestr);
+          },
+          onReady: function(selectedDates, dateStr, instance) {
+            syncFlatpickrYearBE(instance);
+          },
+          onMonthChange: function(selectedDates, dateStr, instance) {
+            syncFlatpickrYearBE(instance);
+          },
+          onYearChange: function(selectedDates, dateStr, instance) {
+            syncFlatpickrYearBE(instance);
+          },
+          onOpen: function(selectedDates, dateStr, instance) {
+            syncFlatpickrYearBE(instance);
+          }
         });
+      }
+    }
+
+    function syncFlatpickrYearBE(instance) {
+      if (!instance || !instance.calendarContainer) return;
+      const yearInp = instance.calendarContainer.querySelector('.cur-year');
+      if (yearInp && instance.currentYear < 2400) {
+        yearInp.value = instance.currentYear + 543;
       }
     }
 
@@ -1325,8 +1359,8 @@
       if (!dateVal) return null;
       if (typeof dateVal === 'object' && dateVal.getFullYear) {
         let y = dateVal.getFullYear();
-        let yBE = y > 2400 ? y : y + 543;
-        let yCE = y > 2400 ? y - 543 : y;
+        let yBE = y > 2400 ? (y > 3000 ? y - 543 : y) : y + 543;
+        let yCE = y > 2400 ? (y > 3000 ? y - 1086 : y - 543) : y;
         return { yearBE: yBE, yearCE: yCE, month: dateVal.getMonth() + 1, day: dateVal.getDate() };
       }
       const str = dateVal.toString().trim();
@@ -1338,8 +1372,8 @@
         let y = parseInt(gvizMatch[1], 10);
         let m = parseInt(gvizMatch[2], 10) + 1;
         let d = parseInt(gvizMatch[3], 10);
-        let yBE = y > 2400 ? y : y + 543;
-        let yCE = y > 2400 ? y - 543 : y;
+        let yBE = y > 2400 ? (y > 3000 ? y - 543 : y) : y + 543;
+        let yCE = y > 2400 ? (y > 3000 ? y - 1086 : y - 543) : y;
         return { yearBE: yBE, yearCE: yCE, month: m, day: d };
       }
 
@@ -1349,8 +1383,8 @@
         let y = parseInt(parts[0], 10);
         let m = parseInt(parts[1], 10);
         let d = parseInt(parts[2], 10);
-        let yBE = y > 2400 ? y : y + 543;
-        let yCE = y > 2400 ? y - 543 : y;
+        let yBE = y > 2400 ? (y > 3000 ? y - 543 : y) : y + 543;
+        let yCE = y > 2400 ? (y > 3000 ? y - 1086 : y - 543) : y;
         return { yearBE: yBE, yearCE: yCE, month: m, day: d };
       }
 
@@ -1361,15 +1395,15 @@
           let y = parseInt(slashParts[0], 10);
           let m = parseInt(slashParts[1], 10);
           let d = parseInt(slashParts[2], 10);
-          let yBE = y > 2400 ? y : y + 543;
-          let yCE = y > 2400 ? y - 543 : y;
+          let yBE = y > 2400 ? (y > 3000 ? y - 543 : y) : y + 543;
+          let yCE = y > 2400 ? (y > 3000 ? y - 1086 : y - 543) : y;
           return { yearBE: yBE, yearCE: yCE, month: m, day: d };
         } else { // DD/MM/YYYY
           let p1 = parseInt(slashParts[0], 10);
           let p2 = parseInt(slashParts[1], 10);
           let y = parseInt(slashParts[2], 10);
-          let yBE = y > 2400 ? y : y + 543;
-          let yCE = y > 2400 ? y - 543 : y;
+          let yBE = y > 2400 ? (y > 3000 ? y - 543 : y) : y + 543;
+          let yCE = y > 2400 ? (y > 3000 ? y - 1086 : y - 543) : y;
           return { yearBE: yBE, yearCE: yCE, month: p2, day: p1 };
         }
       }
@@ -2327,11 +2361,15 @@
 
         alert(`บันทึกข้อมูลการปฏิบัติงานของรหัส "${userCode}" ลงในชีท Office เรียบร้อยแล้ว!`);
         renderAttendanceList();
+        renderCalendar();
+        renderTodaySummaryCard();
         closeAttendanceModal();
       } catch (err) {
         console.error("Save attendance err:", err);
         alert('บันทึกข้อมูลในระบบเรียบร้อยแล้ว (อัปเดตหน้าจอ)');
         renderAttendanceList();
+        renderCalendar();
+        renderTodaySummaryCard();
         closeAttendanceModal();
       } finally {
         btn.disabled = false;
@@ -2340,12 +2378,13 @@
     }
 
     function updateLocalOfficeMemory(code, date, session, workType) {
-      const idx = sheetData.officeList.findIndex(o => o.userCode === code && o.session === session);
+      const formattedDate = formatInputDate(date);
+      const idx = sheetData.officeList.findIndex(o => o.userCode === code && isSameDay(o.date, date) && o.session === session);
       if (idx !== -1) {
         sheetData.officeList[idx].workType = workType;
-        sheetData.officeList[idx].date = date;
+        sheetData.officeList[idx].date = formattedDate;
       } else {
-        sheetData.officeList.push({ userCode: code, date: date, session: session, workType: workType });
+        sheetData.officeList.push({ userCode: code, date: formattedDate, session: session, workType: workType });
       }
     }
 
@@ -2816,12 +2855,12 @@
           fiscalYear: fy,
           department: deptName,
           auditor: auditor,
-          dateReceivedFromDept: deptSend,
-          dateAuditorReceived: audRecv,
-          dateSubmittedToLeader: submitLeader,
-          dateSubmittedToDean: submitDean,
-          dateSubmittedToPresident: submitPresident,
-          dateDeanApproved: deanApprove,
+          dateReceivedFromDept: formatInputDate(deptSend),
+          dateAuditorReceived: formatInputDate(audRecv),
+          dateSubmittedToLeader: formatInputDate(submitLeader),
+          dateSubmittedToDean: formatInputDate(submitDean),
+          dateSubmittedToPresident: formatInputDate(submitPresident),
+          dateDeanApproved: formatInputDate(deanApprove),
           periodKey: `${fy}-${period}`
         }
       };
@@ -2843,12 +2882,12 @@
           fiscalYear: fy,
           department: deptName,
           auditor: auditor,
-          dateReceivedFromDept: deptSend,
-          dateAuditorReceived: audRecv,
-          dateSubmittedToLeader: submitLeader,
-          dateSubmittedToDean: submitDean,
-          dateSubmittedToPresident: submitPresident,
-          dateDeanApproved: deanApprove,
+          dateReceivedFromDept: formatInputDate(deptSend),
+          dateAuditorReceived: formatInputDate(audRecv),
+          dateSubmittedToLeader: formatInputDate(submitLeader),
+          dateSubmittedToDean: formatInputDate(submitDean),
+          dateSubmittedToPresident: formatInputDate(submitPresident),
+          dateDeanApproved: formatInputDate(deanApprove),
           periodKey: `${fy}-${period}`
         };
         if (existingTrackIdx !== -1) {
@@ -2870,8 +2909,8 @@
               editData: {
                 trackingId: trackingId,
                 round: r,
-                dateReturned: retInp.value,
-                dateResubmitted: resInp ? resInp.value : '',
+                dateReturned: formatInputDate(retInp.value),
+                dateResubmitted: formatInputDate(resInp ? resInp.value : ''),
                 note: noteInp ? noteInp.value : ''
               }
             };
@@ -2880,8 +2919,8 @@
               editId: `ED-${r}`,
               trackingId: trackingId,
               round: r,
-              dateReturned: retInp.value,
-              dateResubmitted: resInp ? resInp.value : '',
+              dateReturned: formatInputDate(retInp.value),
+              dateResubmitted: formatInputDate(resInp ? resInp.value : ''),
               note: noteInp ? noteInp.value : '',
               status: resInp && resInp.value ? 'ส่งคืนแล้ว' : 'รอแก้ไข'
             });
@@ -3018,12 +3057,9 @@
 
     function parseDateSafe(str) {
       if (!str) return null;
-      if (str.includes('-')) return new Date(str);
-      const parts = str.split('/');
-      if (parts.length === 3) {
-        let yr = parseInt(parts[2], 10);
-        if (yr > 2400) yr -= 543;
-        return new Date(yr, parts[1] - 1, parts[0]);
+      const parsed = parseDateComponents(str);
+      if (parsed) {
+        return new Date(parsed.yearCE, parsed.month - 1, parsed.day);
       }
       return null;
     }

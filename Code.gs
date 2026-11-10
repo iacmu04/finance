@@ -140,6 +140,8 @@ function handleApiRequest(action, data) {
       return getOfficeAttendance(data.date, data.email);
     case 'getSystemLogs':
       return getSystemLogs(data.limit, data.email);
+    case 'repairAllSheetDates':
+      return repairAllSheetDates();
     default:
       throw new Error('ไม่พบ Action ที่ระบุ: ' + action);
   }
@@ -416,14 +418,14 @@ function getTrackingList(filters, email) {
     let dueDate = null;
     let daysRemaining = null;
 
-    if (dateAuditorReceived && isValidDate(dateAuditorReceived)) {
-      const dtAudRec = new Date(dateAuditorReceived);
+    const dtAudRec = parseDateObj(dateAuditorReceived);
+    if (dtAudRec) {
       dtAudRec.setHours(0, 0, 0, 0);
 
       dueDate = new Date(dtAudRec.getTime() + (kpiStandardDays * 24 * 60 * 60 * 1000));
 
-      if (dateSubmittedToDean && isValidDate(dateSubmittedToDean)) {
-        const dtDean = new Date(dateSubmittedToDean);
+      const dtDean = parseDateObj(dateSubmittedToDean);
+      if (dtDean) {
         dtDean.setHours(0, 0, 0, 0);
         kpiDays = Math.round((dtDean.getTime() - dtAudRec.getTime()) / (24 * 60 * 60 * 1000));
         kpiStatus = kpiDays <= kpiStandardDays ? 'ทันกำหนด' : 'เกินกำหนด';
@@ -446,19 +448,19 @@ function getTrackingList(filters, email) {
     const editInfo = editMap[trackingId] || { count: 0, totalDays: 0, pendingEdit: false, rounds: [] };
     let status = 'รอส่วนงานส่งงบ';
 
-    if (dateSubmittedToPresident && isValidDate(dateSubmittedToPresident)) {
+    if (parseDateObj(dateSubmittedToPresident)) {
       status = 'เสนออธิการบดีแล้ว';
-    } else if (dateDeanApproved && isValidDate(dateDeanApproved)) {
+    } else if (parseDateObj(dateDeanApproved)) {
       status = 'ผู้อำนวยการเห็นชอบแล้ว';
     } else if (editInfo.pendingEdit) {
       status = 'ผู้อำนวยการส่งกลับแก้ไข';
-    } else if (dateSubmittedToDean && isValidDate(dateSubmittedToDean)) {
+    } else if (parseDateObj(dateSubmittedToDean)) {
       status = 'เสนอผู้อำนวยการแล้ว';
-    } else if (dateSubmittedToLeader && isValidDate(dateSubmittedToLeader)) {
+    } else if (parseDateObj(dateSubmittedToLeader)) {
       status = 'เสนอหัวหน้ากลุ่มงานแล้ว';
-    } else if (dateAuditorReceived && isValidDate(dateAuditorReceived)) {
+    } else if (parseDateObj(dateAuditorReceived)) {
       status = 'ผู้ตรวจสอบกำลังตรวจสอบ';
-    } else if (dateReceivedFromDept && isValidDate(dateReceivedFromDept)) {
+    } else if (parseDateObj(dateReceivedFromDept)) {
       status = 'ได้รับงบแล้ว รอสารบรรณส่งมอบ';
     }
 
@@ -553,12 +555,12 @@ function saveTracking(item, email) {
         item.fiscalYear || fy,
         item.department || '',
         item.auditor || '',
-        parseDateInput(item.dateReceivedFromDept),
-        parseDateInput(item.dateAuditorReceived),
-        parseDateInput(item.dateSubmittedToLeader),
-        parseDateInput(item.dateSubmittedToDean),
-        parseDateInput(item.dateSubmittedToPresident),
-        parseDateInput(item.dateDeanApproved),
+        normalizeDateBE(item.dateReceivedFromDept),
+        normalizeDateBE(item.dateAuditorReceived),
+        normalizeDateBE(item.dateSubmittedToLeader),
+        normalizeDateBE(item.dateSubmittedToDean),
+        normalizeDateBE(item.dateSubmittedToPresident),
+        normalizeDateBE(item.dateDeanApproved),
         item.periodKey || (fy + '-' + item.period)
       ];
 
@@ -583,12 +585,12 @@ function saveTracking(item, email) {
         item.fiscalYear || data[rowIndex - 1][3],
         item.department || data[rowIndex - 1][4],
         item.auditor || data[rowIndex - 1][5],
-        parseDateInput(item.dateReceivedFromDept),
-        parseDateInput(item.dateAuditorReceived),
-        parseDateInput(item.dateSubmittedToLeader),
-        parseDateInput(item.dateSubmittedToDean),
-        parseDateInput(item.dateSubmittedToPresident),
-        parseDateInput(item.dateDeanApproved),
+        normalizeDateBE(item.dateReceivedFromDept),
+        normalizeDateBE(item.dateAuditorReceived),
+        normalizeDateBE(item.dateSubmittedToLeader),
+        normalizeDateBE(item.dateSubmittedToDean),
+        normalizeDateBE(item.dateSubmittedToPresident),
+        normalizeDateBE(item.dateDeanApproved),
         item.periodKey || data[rowIndex - 1][12]
       ];
 
@@ -669,13 +671,15 @@ function saveEditRound(editData, email) {
 
     // คำนวณจำนวนวัน
     let days = '';
-    const dateReturned = parseDateInput(editData.dateReturned);
-    const dateResubmitted = parseDateInput(editData.dateResubmitted);
+    const dateReturned = normalizeDateBE(editData.dateReturned);
+    const dateResubmitted = normalizeDateBE(editData.dateResubmitted);
 
     if (dateReturned && dateResubmitted) {
-      const dtRet = new Date(dateReturned);
-      const dtRes = new Date(dateResubmitted);
-      days = Math.max(0, Math.round((dtRes.getTime() - dtRet.getTime()) / (24 * 60 * 60 * 1000)));
+      const dtRet = parseDateObj(dateReturned);
+      const dtRes = parseDateObj(dateResubmitted);
+      if (dtRet && dtRes) {
+        days = Math.max(0, Math.round((dtRes.getTime() - dtRet.getTime()) / (24 * 60 * 60 * 1000)));
+      }
     }
 
     const status = (dateResubmitted && dateResubmitted !== '') ? 'ส่งคืนแล้ว' : 'รอแก้ไข';
@@ -765,7 +769,7 @@ function approveByDean(trackingId, approveDate, email) {
     const data = sheet.getDataRange().getValues();
     for (let i = 1; i < data.length; i++) {
       if (data[i][0] && data[i][0].toString().trim() === trackingId.trim()) {
-        const appDateVal = approveDate ? parseDateInput(approveDate) : new Date();
+        const appDateVal = approveDate ? normalizeDateBE(approveDate) : normalizeDateBE(new Date());
         sheet.getRange(i + 1, 12).setValue(appDateVal); // Col L
 
         logAction(
@@ -836,7 +840,7 @@ function completeAndSubmit(trackingId, email) {
       }
     }
 
-    const todayDate = new Date();
+    const todayDate = normalizeDateBE(new Date());
     trackSheet.getRange(rowIndex, 11).setValue(todayDate); // Col K
 
     logAction(
@@ -1074,67 +1078,118 @@ function getSystemLogs(limit, email) {
 }
 
 /* =========================================================================
- * 8. Date Helpers & Formatter
+ * 8. Date Helpers & Formatter (รองรับ พ.ศ. DD/MM/YYYY สมบูรณ์แบบ)
  * ========================================================================= */
 
-function isValidDate(d) {
-  if (!d) return false;
-  if (d instanceof Date) return !isNaN(d.getTime());
-  const parsed = Date.parse(d);
-  return !isNaN(parsed);
-}
-
-function formatDateDisplay(val) {
+/**
+ * แปลง/ปรับวันที่ให้เป็นสตริง วัน/เดือน/ปี (พ.ศ.) มาตรฐาน เช่น "11/11/2569"
+ * ป้องกันการแปลง พ.ศ. ซ้ำซ้อน (เช่น 2569 -> 3112) และซ่อมแซมค่าปี > 3000 อัตโนมัติ
+ */
+function normalizeDateBE(val) {
   if (!val) return '';
-  let d = val;
-  if (!(d instanceof Date)) {
-    d = new Date(val);
+  if (typeof val === 'string') {
+    val = val.trim();
+    if (!val) return '';
+
+    // GVIZ Date(y,m,d) format
+    const gvizMatch = val.match(/Date\((\d+),(\d+),(\d+)\)/);
+    if (gvizMatch) {
+      let y = parseInt(gvizMatch[1], 10);
+      let m = ('0' + (parseInt(gvizMatch[2], 10) + 1)).slice(-2);
+      let d = ('0' + parseInt(gvizMatch[3], 10)).slice(-2);
+      if (y < 2400) y += 543;
+      if (y > 3000) y -= 543;
+      return d + '/' + m + '/' + y;
+    }
+
+    const parts = val.split(/[\/\-]/);
+    if (parts.length === 3) {
+      if (parts[2].length === 4) { // DD/MM/YYYY
+        let d = ('0' + parseInt(parts[0], 10)).slice(-2);
+        let m = ('0' + parseInt(parts[1], 10)).slice(-2);
+        let y = parseInt(parts[2], 10);
+        if (y < 2400) y += 543;
+        if (y > 3000) y -= 543;
+        return d + '/' + m + '/' + y;
+      } else if (parts[0].length === 4) { // YYYY/MM/DD หรือ YYYY-MM-DD
+        let y = parseInt(parts[0], 10);
+        let m = ('0' + parseInt(parts[1], 10)).slice(-2);
+        let d = ('0' + parseInt(parts[2], 10)).slice(-2);
+        if (y < 2400) y += 543;
+        if (y > 3000) y -= 543;
+        return d + '/' + m + '/' + y;
+      }
+    }
   }
+
+  let d = val;
+  if (!(d instanceof Date)) d = new Date(val);
   if (isNaN(d.getTime())) return val.toString();
 
   const day = ('0' + d.getDate()).slice(-2);
   const month = ('0' + (d.getMonth() + 1)).slice(-2);
-  const yearBE = d.getFullYear() + 543;
+  let year = d.getFullYear();
+  if (year < 2400) year += 543;
+  if (year > 3000) year -= 543;
 
-  return day + '/' + month + '/' + yearBE;
+  return day + '/' + month + '/' + year;
+}
+
+/**
+ * แปลงวันที่เป็น JavaScript Date object (ค.ศ.) สำหรับการคำนวณระยะเวลา / KPI
+ */
+function parseDateObj(val) {
+  if (!val) return null;
+  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+  const str = val.toString().trim();
+  if (!str) return null;
+
+  const gvizMatch = str.match(/Date\((\d+),(\d+),(\d+)\)/);
+  if (gvizMatch) {
+    let y = parseInt(gvizMatch[1], 10);
+    let m = parseInt(gvizMatch[2], 10);
+    let d = parseInt(gvizMatch[3], 10);
+    if (y > 3000) y -= 1086;
+    else if (y > 2400) y -= 543;
+    return new Date(y, m, d);
+  }
+
+  const parts = str.split(/[\/\-]/);
+  if (parts.length === 3) {
+    let d, m, y;
+    if (parts[0].length === 4) { // YYYY-MM-DD
+      y = parseInt(parts[0], 10);
+      m = parseInt(parts[1], 10) - 1;
+      d = parseInt(parts[2], 10);
+    } else { // DD/MM/YYYY
+      d = parseInt(parts[0], 10);
+      m = parseInt(parts[1], 10) - 1;
+      y = parseInt(parts[2], 10);
+    }
+    if (y > 3000) y -= 1086;
+    else if (y > 2400) y -= 543;
+    const dt = new Date(y, m, d);
+    return isNaN(dt.getTime()) ? null : dt;
+  }
+
+  const dt = new Date(str);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
+function isValidDate(d) {
+  return parseDateObj(d) !== null;
+}
+
+function formatDateDisplay(val) {
+  return normalizeDateBE(val);
 }
 
 function parseDateInput(str) {
-  if (!str) return '';
-  if (str instanceof Date) return str;
-  str = str.toString().trim();
-  if (str === '') return '';
-
-  // ตรวจสอบรูปแบบ YYYY-MM-DD
-  if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(str)) {
-    const parts = str.split('-');
-    let y = parseInt(parts[0], 10);
-    if (y > 2400) y -= 543;
-    return new Date(y, parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-  }
-
-  // รูปแบบ dd/mm/yyyy หรือ dd-mm-yyyy (พ.ศ. หรือ ค.ศ.)
-  const parts = str.split(/[\/\-]/);
-  if (parts.length === 3) {
-    if (parts[0].length === 4) { // YYYY/MM/DD
-      let y = parseInt(parts[0], 10);
-      if (y > 2400) y -= 543;
-      return new Date(y, parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-    } else { // DD/MM/YYYY
-      let day = parseInt(parts[0], 10);
-      let month = parseInt(parts[1], 10) - 1;
-      let year = parseInt(parts[2], 10);
-      if (year > 2400) year -= 543; // แปลง พ.ศ. เป็น ค.ศ.
-      return new Date(year, month, day);
-    }
-  }
-
-  const d = new Date(str);
-  return isNaN(d.getTime()) ? str : d;
+  return normalizeDateBE(str);
 }
 
 /* =========================================================================
- * 8. ระบบบันทึกข้อมูลการปฏิบัติงาน (Office Attendance)
+ * 9. ระบบบันทึกข้อมูลการปฏิบัติงาน (Office Attendance)
  * ========================================================================= */
 
 /**
@@ -1151,7 +1206,7 @@ function saveOfficeAttendance(officeData, email) {
   }
 
   const userCode = officeData.userCode || profile.code || profile.nickname || 'Unknown';
-  const dateStr = formatDateDisplay(officeData.date) || officeData.date;
+  const dateStr = normalizeDateBE(officeData.date) || officeData.date;
   const session = (officeData.session || 'เช้า').trim();
   const workType = (officeData.workType || 'เข้า Office').trim();
 
@@ -1164,7 +1219,7 @@ function saveOfficeAttendance(officeData, email) {
 
     for (let i = 1; i < data.length; i++) {
       const rowCode = (data[i][0] || '').toString().trim();
-      const rowDate = formatDateDisplay(data[i][1]);
+      const rowDate = normalizeDateBE(data[i][1]);
       const rowSession = (data[i][2] || '').toString().trim();
       if (rowCode === userCode && rowDate === dateStr && rowSession === session) {
         foundRow = i + 1;
@@ -1200,11 +1255,11 @@ function getOfficeAttendance(dateStr, email) {
 
   const data = sheet.getDataRange().getValues();
   const list = [];
-  const targetDate = dateStr ? formatDateDisplay(dateStr) : '';
+  const targetDate = dateStr ? normalizeDateBE(dateStr) : '';
 
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    const dStr = formatDateDisplay(row[1]);
+    const dStr = normalizeDateBE(row[1]);
     if (!targetDate || dStr === targetDate) {
       list.push({
         code: row[0],
@@ -1216,5 +1271,30 @@ function getOfficeAttendance(dateStr, email) {
   }
 
   return { success: true, data: list };
+}
+
+/**
+ * ซ่อมแซมวันที่ที่ผิดพลาด (เช่น ปี 3112 ในชีท Office) ให้กลับเป็น พ.ศ. ที่ถูกต้อง
+ */
+function repairAllSheetDates() {
+  const ss = getSpreadsheet();
+  const offSheet = ss.getSheetByName(SHEETS.OFFICE);
+  let repairedCount = 0;
+
+  if (offSheet && offSheet.getLastRow() > 1) {
+    const range = offSheet.getRange(2, 2, offSheet.getLastRow() - 1, 1);
+    const values = range.getValues();
+    for (let i = 0; i < values.length; i++) {
+      const rawVal = values[i][0];
+      const normalized = normalizeDateBE(rawVal);
+      if (normalized && normalized !== rawVal) {
+        values[i][0] = normalized;
+        repairedCount++;
+      }
+    }
+    range.setValues(values);
+  }
+
+  return { success: true, repairedCount: repairedCount };
 }
 
