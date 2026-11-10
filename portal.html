@@ -1,0 +1,1788 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Internal Audit Chiang Mai University - Executive Portal</title>
+  
+  <!-- Fonts: Prompt & Sarabun -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Identity Services (GSI) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#F4F2FF',
+              100: '#EAE6FE',
+              200: '#D5CCFD',
+              300: '#B5A3FB',
+              400: '#9475F7',
+              500: '#7952E0',
+              600: '#6836DC',
+              700: '#5825C5',
+              800: '#481FA3',
+              900: '#3C1B83',
+            },
+            status: {
+              office: '#10B981', // เขียว
+              leave: '#EF4444',  // แดง
+              wfa: '#F59E0B',    // เหลือง
+              pending: '#8B5CF6',// ม่วง
+            }
+          },
+          fontFamily: {
+            sans: ['Prompt', 'Sarabun', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Prompt', 'Sarabun', sans-serif;
+      background-color: #F8F7FD;
+      color: #334155;
+    }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F1F0F9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94A3B8;
+    }
+
+    .card-shadow {
+      box-shadow: 0 4px 20px -2px rgba(111, 82, 237, 0.07), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+    }
+    
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .status-dot-lg {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    
+    /* Gauge meter */
+    .gauge-wrapper {
+      position: relative;
+      width: 180px;
+      height: 90px;
+      overflow: hidden;
+      margin: 0 auto;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex text-slate-700 antialiased selection:bg-brand-100 selection:text-brand-900">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="w-20 bg-white border-r border-slate-100 flex flex-col items-center py-6 justify-between shrink-0 shadow-sm z-30">
+    <div class="flex flex-col items-center gap-7 w-full">
+      <!-- CMU IA Logo -->
+      <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-purple-400 p-0.5 shadow-md shadow-brand-500/20 cursor-pointer" onclick="navigate('home')">
+        <div class="w-full h-full bg-white rounded-[14px] flex items-center justify-center font-bold text-brand-600 text-sm tracking-tighter">
+          IACMU
+        </div>
+      </div>
+
+      <!-- Navigation Icons -->
+      <nav class="flex flex-col items-center gap-3 w-full px-3">
+        <!-- 1. Home -->
+        <button id="nav-btn-home" onclick="navigate('home')" title="หน้าแรก (Home Dashboard)" 
+          class="nav-item w-12 h-12 rounded-xl flex items-center justify-center transition-all bg-brand-500 text-white shadow-md shadow-brand-500/25">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+          </svg>
+        </button>
+
+        <!-- 2. Finance Report -->
+        <button id="nav-btn-finance" onclick="navigate('finance')" title="รายงานงบการเงิน (Finance Report)" 
+          class="nav-item w-12 h-12 rounded-xl flex items-center justify-center text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-all">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </button>
+
+        <!-- 3. Training & Development -->
+        <button id="nav-btn-training" onclick="navigate('training')" title="ประวัติการอบรม (Training & Development)" 
+          class="nav-item w-12 h-12 rounded-xl flex items-center justify-center text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-all">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+        </button>
+
+        <!-- 4. Payroll (เงินเดือน - Dean/Admin only) -->
+        <button id="nav-btn-payroll" onclick="navigate('payroll')" title="งานเงินเดือน (Payroll - เฉพาะผู้บริหาร/Admin)" 
+          class="nav-item w-12 h-12 rounded-xl flex items-center justify-center text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-all">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
+        </button>
+
+        <!-- 5. Budget (งานงบประมาณ) -->
+        <button id="nav-btn-budget" onclick="navigate('budget')" title="งานงบประมาณ (Budget)" 
+          class="nav-item w-12 h-12 rounded-xl flex items-center justify-center text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-all">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </button>
+
+        <!-- 6. HR (งานบุคคล) -->
+        <button id="nav-btn-hr" onclick="navigate('hr')" title="งานบุคคล (HR)" 
+          class="nav-item w-12 h-12 rounded-xl flex items-center justify-center text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-all">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+          </svg>
+        </button>
+
+        <!-- 7. Administration (Admin only) -->
+        <button id="nav-btn-admin" onclick="navigate('admin')" title="Administration (เฉพาะ Admin)" 
+          class="nav-item w-12 h-12 rounded-xl flex items-center justify-center text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-all">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Bottom Actions -->
+    <div class="flex flex-col items-center gap-3 w-full px-3">
+      <!-- Quick Check-in Button -->
+      <button onclick="openAttendanceModal()" title="ลงเวลา / บันทึกสถานะการเข้างานวันนี้" 
+        class="w-11 h-11 rounded-xl bg-purple-50 text-brand-600 hover:bg-brand-500 hover:text-white transition-all flex items-center justify-center shadow-sm">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        </svg>
+      </button>
+
+      <!-- Settings -->
+      <button onclick="alert('การตั้งค่าระบบ (Configuration)')" title="ตั้งค่าระบบ" 
+        class="w-11 h-11 rounded-xl text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-all flex items-center justify-center">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+      </button>
+
+      <!-- Logout / Switch -->
+      <button onclick="handleLogout()" title="ออกจากระบบ" 
+        class="w-11 h-11 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all flex items-center justify-center">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+        </svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT AREA -->
+  <div class="flex-1 flex flex-col min-h-screen overflow-x-hidden">
+
+    <!-- TOP HEADER BAR -->
+    <header class="p-4 pb-2">
+      <div class="bg-gradient-to-r from-brand-600 via-brand-500 to-purple-500 text-white rounded-2xl px-6 py-3.5 flex items-center justify-between shadow-lg shadow-brand-500/20">
+        <!-- Title & Unit Name -->
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-white/15 backdrop-blur-sm flex items-center justify-center">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-lg font-semibold tracking-wide flex items-center gap-2">
+              Internal Audit Chiang Mai University
+              <span class="text-[11px] font-normal bg-white/20 px-2.5 py-0.5 rounded-full border border-white/20">Executive Portal</span>
+            </h1>
+          </div>
+        </div>
+
+        <!-- Right Side: Google Login & Profile -->
+        <div class="flex items-center gap-3">
+          <!-- Role Simulator (For testing & demonstration) -->
+          <div class="hidden md:flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-xl border border-white/20 text-xs">
+            <span class="text-white/80">มุมมองสิทธิ์:</span>
+            <select id="role-selector" onchange="simulateRoleChange(this.value)" class="bg-transparent text-white font-medium focus:outline-none cursor-pointer">
+              <option value="dean" class="text-slate-800">ผอ. หยก (Dean / สิทธิ์เต็ม)</option>
+              <option value="admin" class="text-slate-800">ปุ้ย (Admin)</option>
+              <option value="supervisor1" class="text-slate-800">หัวหน้างานตรวจสอบ 1</option>
+              <option value="auditor_plearn" class="text-slate-800">เพลิน (ผู้ตรวจสอบ 1)</option>
+              <option value="auditor_nong" class="text-slate-800">น้อง (ผู้ตรวจสอบ 2)</option>
+              <option value="auditor_stamp" class="text-slate-800">แสตมป์ (ผู้ตรวจสอบ 3)</option>
+            </select>
+          </div>
+
+          <!-- Google Real Sign-In Button Container -->
+          <div id="g_id_signin_wrapper" class="relative">
+            <div id="google-login-btn"></div>
+          </div>
+
+          <!-- User Profile Display -->
+          <div class="flex items-center gap-3 bg-white/10 pl-2 pr-3 py-1 rounded-xl border border-white/20 cursor-pointer hover:bg-white/15 transition-all" onclick="toggleProfileMenu()">
+            <img id="user-avatar-img" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" 
+              alt="Avatar" class="w-9 h-9 rounded-full object-cover ring-2 ring-white/50">
+            <div class="text-left text-xs">
+              <div id="user-display-name" class="font-medium text-white leading-tight">Budiono Siregar</div>
+              <div id="user-display-email" class="text-[11px] text-white/70">budiono.siregar@gmail.com</div>
+            </div>
+            <svg class="w-4 h-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- VIEW 1: HOME DASHBOARD (ตามภาพแรก) -->
+    <main id="view-home" class="p-4 pt-2 flex flex-col gap-4">
+      
+      <!-- Top Grid: Calendar + Attendance By Team + Today's Summary & Finance Gauge -->
+      <div class="grid grid-cols-12 gap-4">
+        
+        <!-- Left & Center: Calendar & Attendance Matrix (Cols 1-9) -->
+        <div class="col-span-12 xl:col-span-9 bg-white rounded-2xl p-5 card-shadow border border-slate-100 flex flex-col justify-between">
+          
+          <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+            <div class="flex items-center gap-3">
+              <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+                <span>📅</span> ปฏิทินและสถานะการเข้าปฏิบัติงาน
+              </h2>
+              <span id="current-month-label" class="text-xs bg-brand-50 text-brand-700 px-3 py-1 rounded-full font-medium">
+                มกราคม 2568 (Jan 2025)
+              </span>
+            </div>
+
+            <!-- Legend & Action -->
+            <div class="flex items-center gap-4 text-xs">
+              <div class="flex items-center gap-1.5">
+                <span class="status-dot bg-status-office"></span>
+                <span>Office</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="status-dot bg-status-wfa"></span>
+                <span>อบรม / WFA</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="status-dot bg-status-leave"></span>
+                <span>ลา</span>
+              </div>
+              <button onclick="openAttendanceModal()" class="ml-2 px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg font-medium transition-all shadow-sm flex items-center gap-1.5">
+                <span>+</span> บันทึกสถานะวันนี้
+              </button>
+            </div>
+          </div>
+
+          <!-- Split: Calendar Left (60%) vs Attendance List Right (40%) -->
+          <div class="grid grid-cols-12 gap-5">
+            
+            <!-- Calendar Grid (7 cols) -->
+            <div class="col-span-12 md:col-span-7">
+              <div class="grid grid-cols-7 text-center text-xs font-semibold text-slate-500 mb-2">
+                <div class="py-1">Monday</div>
+                <div class="py-1">Tuesday</div>
+                <div class="py-1">Wednesday</div>
+                <div class="py-1">Thursday</div>
+                <div class="py-1">Friday</div>
+                <div class="py-1 text-slate-400">Saturday</div>
+                <div class="py-1 text-slate-400">Sunday</div>
+              </div>
+              
+              <!-- Days Grid (5 weeks) -->
+              <div id="calendar-days-container" class="grid grid-cols-7 gap-1 text-xs">
+                <!-- Days generated by JS -->
+              </div>
+            </div>
+
+            <!-- Attendance By Department / Team (5 cols) -->
+            <div class="col-span-12 md:col-span-5 border-l border-slate-100 pl-4 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between text-xs font-semibold text-slate-400 pb-2 mb-2 border-b border-slate-100">
+                  <span>รายชื่อบุคลากร (แยกตามกลุ่มงาน)</span>
+                  <div class="flex items-center gap-4 pr-1">
+                    <span class="text-brand-600 font-medium">เช้า</span>
+                    <span class="text-brand-600 font-medium">บ่าย</span>
+                  </div>
+                </div>
+
+                <div id="attendance-list-container" class="space-y-3.5 max-h-[380px] overflow-y-auto pr-1">
+                  <!-- Generated dynamically based on user role -->
+                </div>
+              </div>
+
+              <!-- Note on permission -->
+              <div class="text-[11px] text-slate-400 bg-slate-50 p-2 rounded-lg mt-3 flex items-center justify-between">
+                <span id="role-view-notice">มุมมองผู้บริหาร: แสดงบุคลากรทุกกลุ่มงาน</span>
+                <span class="text-brand-600 font-medium cursor-pointer" onclick="openAttendanceModal()">แก้ไขของฉัน</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Right Side: 2 Cards (Cols 10-12) -->
+        <div class="col-span-12 xl:col-span-3 flex flex-col gap-4">
+          
+          <!-- Card 1: สรุปสถานะคนเข้างานวันนี้ -->
+          <div class="bg-white rounded-2xl p-5 card-shadow border border-slate-100 flex-1 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                  <span class="p-1.5 rounded-lg bg-purple-50 text-brand-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                  </span>
+                  <h3 class="text-sm font-semibold text-slate-800">สรุปการเข้างานวันนี้</h3>
+                </div>
+                <div class="flex items-center gap-3 text-xs font-semibold text-brand-600">
+                  <span>เช้า</span>
+                  <span>บ่าย</span>
+                </div>
+              </div>
+
+              <div class="space-y-2.5 text-xs">
+                <div class="flex items-center justify-between py-1 border-b border-slate-50">
+                  <div class="flex items-center gap-2">
+                    <span class="status-dot bg-status-office"></span>
+                    <span class="text-slate-600">ทำงานใน Office</span>
+                  </div>
+                  <div class="flex items-center gap-6 font-bold text-slate-700">
+                    <span id="stat-office-am" class="w-4 text-center">12</span>
+                    <span id="stat-office-pm" class="w-4 text-center">16</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between py-1 border-b border-slate-50">
+                  <div class="flex items-center gap-2">
+                    <span class="status-dot bg-status-leave"></span>
+                    <span class="text-slate-600">ลา</span>
+                  </div>
+                  <div class="flex items-center gap-6 font-bold text-slate-700">
+                    <span id="stat-leave-am" class="w-4 text-center">2</span>
+                    <span id="stat-leave-pm" class="w-4 text-center">2</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between py-1 border-b border-slate-50">
+                  <div class="flex items-center gap-2">
+                    <span class="status-dot bg-brand-400"></span>
+                    <span class="text-slate-600">ประชุม / อบรม</span>
+                  </div>
+                  <div class="flex items-center gap-6 font-bold text-slate-700">
+                    <span id="stat-train-am" class="w-4 text-center">4</span>
+                    <span id="stat-train-pm" class="w-4 text-center">-</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between py-1">
+                  <div class="flex items-center gap-2">
+                    <span class="status-dot bg-status-wfa"></span>
+                    <span class="text-slate-600">WFA</span>
+                  </div>
+                  <div class="flex items-center gap-6 font-bold text-slate-700">
+                    <span id="stat-wfa-am" class="w-4 text-center">1</span>
+                    <span id="stat-wfa-pm" class="w-4 text-center">1</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Mini Progress bar -->
+              <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3 flex">
+                <div class="bg-status-office h-full" style="width: 70%"></div>
+                <div class="bg-status-wfa h-full" style="width: 15%"></div>
+                <div class="bg-status-leave h-full" style="width: 15%"></div>
+              </div>
+            </div>
+
+            <div class="text-[11px] text-emerald-600 font-medium text-right mt-2 flex items-center justify-end gap-1">
+              <span>↑ 33% จากสัปดาห์ก่อน</span>
+            </div>
+          </div>
+
+          <!-- Card 2: สรุปรายงานงบการเงิน (Semi-circle Gauge) -->
+          <div class="bg-white rounded-2xl p-5 card-shadow border border-slate-100 flex-1 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="text-sm font-semibold text-slate-800">รายงานงบการเงิน</h3>
+                <span class="text-xs text-slate-400 bg-slate-50 px-2 py-0.5 rounded">Jan 2025 ▾</span>
+              </div>
+
+              <!-- Gauge Chart Container -->
+              <div class="py-2 flex flex-col items-center justify-center">
+                <div style="width: 170px; height: 95px; position: relative;">
+                  <canvas id="financeGaugeChart"></canvas>
+                </div>
+              </div>
+
+              <!-- Legend & Percentages -->
+              <div class="space-y-1.5 text-xs mt-1">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded bg-brand-500"></span>
+                    <span class="text-slate-600">เสร็จสิ้น</span>
+                  </div>
+                  <span class="font-bold text-slate-700">59.5%</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded bg-amber-400"></span>
+                    <span class="text-slate-600">ระหว่างดำเนินการ</span>
+                  </div>
+                  <span class="font-bold text-slate-700">24.4%</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded bg-blue-500"></span>
+                    <span class="text-slate-600">รอเอกสาร</span>
+                  </div>
+                  <span class="font-bold text-slate-700">16.1%</span>
+                </div>
+              </div>
+            </div>
+
+            <button onclick="navigate('finance')" class="w-full mt-3 py-1.5 text-xs text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-lg font-medium transition-all text-center">
+              เปิดดูตารางติดตาม 41 ส่วนงาน →
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Bottom Grid: Budget Card (Left) vs Multi-tab Individual Details Table (Right) -->
+      <div class="grid grid-cols-12 gap-4">
+        
+        <!-- Bottom Left: งบประมาณ ประจำปี 2570 (Cols 1-4) -->
+        <div class="col-span-12 xl:col-span-4 bg-white rounded-2xl p-5 card-shadow border border-slate-100 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-sm font-semibold text-slate-800">งบประมาณ ประจำปี 2570</h3>
+              <span class="text-xs text-slate-400 bg-slate-50 px-2 py-0.5 rounded">Jan 2025 ▾</span>
+            </div>
+
+            <div class="text-2xl font-bold text-brand-700 tracking-tight mb-4">
+              ฿24,847,060.00
+            </div>
+
+            <div class="space-y-4 text-xs">
+              <!-- Headers -->
+              <div class="grid grid-cols-3 text-center text-slate-400 font-medium">
+                <div>งบประมาณ</div>
+                <div>ค่าใช้จ่าย</div>
+                <div>คงเหลือ</div>
+              </div>
+
+              <!-- Row 1: งบเงินแผ่นดิน -->
+              <div>
+                <div class="font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                  <span>งบเงินแผ่นดิน</span>
+                  <span class="text-[10px] text-slate-400">งบบุคลากร, ค่าตอบแทน</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-center font-bold">
+                  <div class="bg-brand-50 text-brand-700 py-2 rounded-lg">8,627,900</div>
+                  <div class="bg-purple-100 text-brand-800 py-2 rounded-lg">621,011</div>
+                  <div class="bg-indigo-50 text-indigo-700 py-2 rounded-lg">8,006,889</div>
+                </div>
+              </div>
+
+              <!-- Row 2: งบเงินรายได้ -->
+              <div>
+                <div class="font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                  <span>งบเงินรายได้</span>
+                  <span class="text-[10px] text-slate-400">ดำเนินงาน, อบรม, พัฒนา</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-center font-bold">
+                  <div class="bg-slate-50 text-slate-600 py-2 rounded-lg">16,219,160</div>
+                  <div class="bg-slate-50 text-slate-600 py-2 rounded-lg">1,480,200</div>
+                  <div class="bg-slate-50 text-slate-600 py-2 rounded-lg">14,738,960</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+            <span>เบิกจ่ายไปแล้ว 8.45%</span>
+            <span class="text-brand-600 font-medium cursor-pointer" onclick="navigate('budget')">ดูรายละเอียดงบประมาณ →</span>
+          </div>
+        </div>
+
+        <!-- Bottom Right: Multi-tab Individual Details Table (Cols 5-12) -->
+        <div class="col-span-12 xl:col-span-8 bg-white rounded-2xl p-5 card-shadow border border-slate-100">
+          
+          <!-- Tab Buttons & Actions -->
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            
+            <!-- 3 Tabs -->
+            <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+              <button id="tab-btn-fin" onclick="switchDetailTab('fin')" 
+                class="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all bg-brand-500 text-white shadow-sm">
+                รายงานงบการเงิน
+              </button>
+              <button id="tab-btn-train" onclick="switchDetailTab('train')" 
+                class="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-600 hover:text-brand-600">
+                ประวัติการอบรม
+              </button>
+              <button id="tab-btn-pay" onclick="switchDetailTab('pay')" 
+                class="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-600 hover:text-brand-600 flex items-center gap-1">
+                <span>🔒 เงินเดือน</span>
+                <span id="tab-pay-badge" class="text-[9px] bg-purple-200 text-purple-800 px-1.5 py-0.2 rounded-full">Dean/Admin</span>
+              </button>
+            </div>
+
+            <!-- Filter & Export Buttons -->
+            <div class="flex items-center gap-2">
+              <button onclick="alert('กรองข้อมูลตาราง')" class="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                <span>Filter</span>
+              </button>
+              <button onclick="exportTableToCSV()" class="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                <span>Export</span>
+              </button>
+            </div>
+
+          </div>
+
+          <!-- Table Container -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="text-slate-400 font-semibold border-b border-slate-100">
+                <tr id="table-dynamic-headers">
+                  <th class="py-2.5 px-3">TRANSACTION DATE</th>
+                  <th class="py-2.5 px-3">NAME PERSON</th>
+                  <th class="py-2.5 px-3">AMOUNT</th>
+                  <th class="py-2.5 px-3">CATEGORY</th>
+                  <th class="py-2.5 px-3">NOTE</th>
+                  <th class="py-2.5 px-3 text-right">ACTION</th>
+                </tr>
+              </thead>
+              <tbody id="table-dynamic-body" class="divide-y divide-slate-50">
+                <!-- Populated dynamically via JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Table Footer -->
+          <div class="flex items-center justify-between text-xs text-slate-400 pt-3 border-t border-slate-100 mt-2">
+            <span id="table-row-count">แสดง 4 รายการ</span>
+            <div class="flex items-center gap-2">
+              <button class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">‹ ก่อนหน้า</button>
+              <span class="font-medium text-slate-700">1</span>
+              <button class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">ถัดไป ›</button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- VIEW 2: FINANCE REPORT PAGE (ตามภาพที่สอง) -->
+    <main id="view-finance" class="p-4 pt-2 hidden flex flex-col gap-4">
+      
+      <!-- Top Filters Bar -->
+      <section class="bg-white rounded-2xl p-4 card-shadow border border-slate-100 flex flex-wrap items-center gap-3">
+        <!-- 1. ปีงบประมาณ -->
+        <div class="flex-1 min-w-[140px]">
+          <label class="block text-[11px] font-medium text-slate-400 mb-1">ปีงบประมาณ</label>
+          <select id="fin-filter-year" onchange="applyFinanceFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="2570">2570</option>
+            <option value="2569">2569</option>
+            <option value="2568">2568</option>
+          </select>
+        </div>
+
+        <!-- 2. งวดรายงาน -->
+        <div class="flex-1 min-w-[190px]">
+          <label class="block text-[11px] font-medium text-slate-400 mb-1">งวดรายงานที่ต้องการติดตาม</label>
+          <select id="fin-filter-period" onchange="applyFinanceFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="all">-- ภาพรวมทุกงวดทั้งปี --</option>
+            <option value="Q1">ไตรมาส 1 (ต.ค. - ธ.ค.)</option>
+            <option value="Q2">ไตรมาส 2 (ม.ค. - มี.ค.)</option>
+            <option value="Q3">ไตรมาส 3 (เม.ย. - มิ.ย.)</option>
+            <option value="Q4">ไตรมาส 4 (ก.ค. - ก.ย.)</option>
+          </select>
+        </div>
+
+        <!-- 3. กลุ่มงาน -->
+        <div class="flex-1 min-w-[160px]">
+          <label class="block text-[11px] font-medium text-slate-400 mb-1">กลุ่มงาน</label>
+          <select id="fin-filter-group" onchange="applyFinanceFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="all">-- ทุกกลุ่มงาน --</option>
+            <option value="งานตรวจสอบ 1">งานตรวจสอบ 1</option>
+            <option value="งานตรวจสอบ 2">งานตรวจสอบ 2</option>
+            <option value="งานตรวจสอบ 3">งานตรวจสอบ 3</option>
+          </select>
+        </div>
+
+        <!-- 4. ผู้ตรวจสอบ -->
+        <div class="flex-1 min-w-[170px]">
+          <label class="block text-[11px] font-medium text-slate-400 mb-1">ผู้ตรวจสอบ</label>
+          <select id="fin-filter-auditor" onchange="applyFinanceFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="all">-- ผู้ตรวจสอบทั้งหมด --</option>
+            <option value="เพลิน">เพลิน</option>
+            <option value="ทิมจิ">ทิมจิ</option>
+            <option value="น้อง">น้อง</option>
+            <option value="แสตมป์">แสตมป์</option>
+          </select>
+        </div>
+
+        <!-- 5. ส่วนงาน / คณะ -->
+        <div class="flex-1 min-w-[200px]">
+          <label class="block text-[11px] font-medium text-slate-400 mb-1">ส่วนงาน / คณะ</label>
+          <select id="fin-filter-dept" onchange="applyFinanceFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="all">-- ส่วนงาน/คณะทั้งหมด --</option>
+            <option value="คณะสัตวแพทยศาสตร์">คณะสัตวแพทยศาสตร์</option>
+            <option value="คณะวิจิตรศิลป์">คณะวิจิตรศิลป์</option>
+            <option value="คณะเกษตรศาสตร์">คณะเกษตรศาสตร์</option>
+            <option value="สำนักบริการวิชาการ">สำนักบริการวิชาการ</option>
+          </select>
+        </div>
+
+        <!-- Add Report Button -->
+        <div class="self-end pt-5">
+          <button onclick="openFinanceModal()" class="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold shadow-md shadow-brand-500/20 transition-all flex items-center gap-1.5">
+            <span>+</span> บันทึกงวดตรวจ
+          </button>
+        </div>
+      </section>
+
+      <!-- Main Matrix + Right KPI Cards -->
+      <div class="grid grid-cols-12 gap-4">
+        
+        <!-- Left: 41 Departments Tracking Matrix (Cols 1-9) -->
+        <div class="col-span-12 xl:col-span-9 bg-white rounded-2xl p-5 card-shadow border border-slate-100 flex flex-col justify-between">
+          
+          <div>
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-3 pb-3 border-b border-slate-100">
+              <div>
+                <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <span>📊</span> ตารางติดตามงบการเงินรายส่วนงาน ประจำปีงบประมาณ (ต.ค. - ก.ย.)
+                </h2>
+                <p class="text-[11px] text-slate-400">คลิกที่แถวส่วนงานหรือช่องเดือน เพื่อดูรายละเอียดเชิงลึก (Drilldown) หรือแก้ไข/บันทึกข้อมูลวันที่เพิ่มเติม</p>
+              </div>
+
+              <!-- Legend -->
+              <div class="flex flex-wrap items-center gap-3 text-[11px]">
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> เสร็จสิ้นเสนออธิการบดีแล้ว</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> ผอ.เห็นชอบ</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-orange-400"></span> รอเห็นชอบรายงาน</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-400"></span> รอแก้ไข</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span> ส่งกลับแก้ไข</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-200"></span> ยังไม่ได้รับงบ</span>
+              </div>
+            </div>
+
+            <!-- Scrollable Table -->
+            <div class="overflow-x-auto max-h-[500px]">
+              <table class="w-full text-left text-xs whitespace-nowrap">
+                <thead class="bg-slate-50 text-slate-600 font-semibold sticky top-0 z-10 border-b border-slate-200">
+                  <tr>
+                    <th class="py-2.5 px-3 min-w-[240px]">ชื่อส่วนงาน / ผู้รับผิดชอบ</th>
+                    <th class="py-2.5 px-2 text-center">ต.ค.</th>
+                    <th class="py-2.5 px-2 text-center">พ.ย.</th>
+                    <th class="py-2.5 px-2 text-center">ธ.ค.</th>
+                    <th class="py-2.5 px-2 text-center bg-purple-50/70 text-brand-700">ม.ค. (Q1)</th>
+                    <th class="py-2.5 px-2 text-center">ก.พ.</th>
+                    <th class="py-2.5 px-2 text-center">มี.ค.</th>
+                    <th class="py-2.5 px-2 text-center bg-purple-50/70 text-brand-700">เม.ย. (Q2)</th>
+                    <th class="py-2.5 px-2 text-center">พ.ค.</th>
+                    <th class="py-2.5 px-2 text-center">มิ.ย.</th>
+                    <th class="py-2.5 px-2 text-center bg-purple-50/70 text-brand-700">ก.ค. (Q3)</th>
+                    <th class="py-2.5 px-2 text-center">ส.ค.</th>
+                    <th class="py-2.5 px-2 text-center bg-purple-50/70 text-brand-700">ก.ย. (Q4)</th>
+                    <th class="py-2.5 px-3 text-center min-w-[120px]">ความคืบหน้า</th>
+                  </tr>
+                </thead>
+                <tbody id="finance-matrix-body" class="divide-y divide-slate-100">
+                  <!-- 41 Departments generated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between text-xs text-slate-400 pt-3 border-t border-slate-100 mt-2">
+            <span>แสดง 41 ส่วนงาน (มหาวิทยาลัยเชียงใหม่)</span>
+            <div class="flex items-center gap-2">
+              <span class="text-brand-600 font-medium">💡 คลิกที่แถวเพื่อแก้ไขข้อมูลงวดตรวจ</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right: 3 KPI Cards (Cols 10-12) -->
+        <div class="col-span-12 xl:col-span-3 flex flex-col gap-4">
+          
+          <!-- KPI 1: เสร็จสิ้นเสนออธิการบดีแล้ว -->
+          <div class="bg-white rounded-2xl p-5 card-shadow border border-slate-100 flex flex-col justify-between">
+            <div class="flex items-start justify-between">
+              <div>
+                <h4 class="text-xs font-semibold text-slate-600 leading-snug">เสร็จสิ้นเสนออธิการบดีแล้ว</h4>
+                <p class="text-[11px] text-slate-400">ทั้งปีงบประมาณ</p>
+              </div>
+              <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">
+                ✓
+              </div>
+            </div>
+            
+            <div class="my-3">
+              <div class="text-3xl font-extrabold text-emerald-600 tracking-tight">0 <span class="text-slate-400 text-lg font-medium">/ 41</span></div>
+            </div>
+
+            <div class="text-[11px] text-slate-400 border-t border-slate-50 pt-2">
+              ส่วนงานที่ ผอ. พิจารณาเสร็จสิ้นสมบูรณ์
+            </div>
+          </div>
+
+          <!-- KPI 2: ค้างยังไม่ได้เสนอ ผอ. -->
+          <div class="bg-white rounded-2xl p-5 card-shadow border border-slate-100 flex flex-col justify-between">
+            <div class="flex items-start justify-between">
+              <div>
+                <h4 class="text-xs font-semibold text-slate-600 leading-snug">ค้างยังไม่ได้เสนอ ผอ.</h4>
+                <p class="text-[11px] text-brand-600 cursor-pointer hover:underline" onclick="alert('กรองดู 41 ส่วนงานที่ยังค้าง')">(คลิกดูรายชื่อ 🔍)</p>
+              </div>
+              <div class="w-8 h-8 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center font-bold text-sm">
+                ⏳
+              </div>
+            </div>
+            
+            <div class="my-3">
+              <div class="text-3xl font-extrabold text-amber-500 tracking-tight">41</div>
+            </div>
+
+            <div class="text-[11px] text-slate-400 border-t border-slate-50 pt-2">
+              จากทั้งหมด 41 ส่วนงานในงวดนี้
+            </div>
+          </div>
+
+          <!-- KPI 3: แจ้งเตือนถึงวันที่ 18 (ใกล้ครบ 20 วัน) -->
+          <div class="bg-white rounded-2xl p-5 card-shadow border border-slate-100 flex flex-col justify-between">
+            <div class="flex items-start justify-between">
+              <div>
+                <h4 class="text-xs font-semibold text-red-600 flex items-center gap-1">
+                  <span>⚠️</span> แจ้งเตือนถึงวันที่ 18
+                </h4>
+                <p class="text-[11px] text-slate-400">(ใกล้ครบ 20 วัน <span class="text-brand-600 cursor-pointer hover:underline">(คลิกดูรายชื่อ 🔍)</span>)</p>
+              </div>
+              <div class="w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center font-bold text-sm">
+                🔔
+              </div>
+            </div>
+            
+            <div class="my-3">
+              <div class="text-3xl font-extrabold text-red-500 tracking-tight">0</div>
+            </div>
+
+            <div class="text-[11px] text-slate-400 border-t border-slate-50 pt-2">
+              ส่วนงานที่รับงบแล้ว $\ge$ 18 วัน แต่ยังไม่เสนอ ผอ.
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Bottom Row: Recent Financial Submissions Table + 2 Stat Cards -->
+      <div class="grid grid-cols-12 gap-4">
+        
+        <!-- Table: งบการเงินล่าสุด (Cols 1-8) -->
+        <div class="col-span-12 xl:col-span-8 bg-white rounded-2xl p-5 card-shadow border border-slate-100">
+          <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">สรุปรายการงบการเงินล่าสุด</h3>
+          
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-brand-500 text-white font-medium">
+                <tr>
+                  <th class="py-2 px-3 rounded-l-lg">งบการเงิน</th>
+                  <th class="py-2 px-3">งวด</th>
+                  <th class="py-2 px-3 text-center">แก้ไข</th>
+                  <th class="py-2 px-3 text-center">ระยะเวลา</th>
+                  <th class="py-2 px-3 rounded-r-lg text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr class="hover:bg-slate-50 cursor-pointer" onclick="openFinanceModal('คณะวิจิตรศิลป์', 'ตุลาคม 69')">
+                  <td class="py-3 px-3 font-medium text-slate-800">คณะวิจิตรศิลป์</td>
+                  <td class="py-3 px-3 text-slate-600">ตุลาคม 69</td>
+                  <td class="py-3 px-3 text-center font-semibold text-slate-700">3</td>
+                  <td class="py-3 px-3 text-center font-semibold text-slate-700">5 วัน</td>
+                  <td class="py-3 px-3 text-center">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">
+                      ✓ เสร็จสิ้น
+                    </span>
+                  </td>
+                </tr>
+                <tr class="hover:bg-slate-50 cursor-pointer" onclick="openFinanceModal('คณะเกษตรศาสตร์', 'ไตรมาส 1')">
+                  <td class="py-3 px-3 font-medium text-slate-800">คณะเกษตรศาสตร์</td>
+                  <td class="py-3 px-3 text-slate-600">ไตรมาส 1</td>
+                  <td class="py-3 px-3 text-center font-semibold text-slate-700">1</td>
+                  <td class="py-3 px-3 text-center font-semibold text-slate-700">1 วัน</td>
+                  <td class="py-3 px-3 text-center">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800">
+                      ผอ.เห็นชอบ
+                    </span>
+                  </td>
+                </tr>
+                <tr class="hover:bg-slate-50 cursor-pointer" onclick="openFinanceModal('สำนักบริการวิชาการ', 'เมษายน 69')">
+                  <td class="py-3 px-3 font-medium text-slate-800">สำนักบริการวิชาการ</td>
+                  <td class="py-3 px-3 text-slate-600">เมษายน 69</td>
+                  <td class="py-3 px-3 text-center font-semibold text-slate-700">2</td>
+                  <td class="py-3 px-3 text-center font-semibold text-slate-700">2 วัน</td>
+                  <td class="py-3 px-3 text-center">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-800">
+                      รอแก้ไข
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Stat Card 1: จำนวนครั้งเฉลี่ยที่ส่งกลับแก้ไข (Cols 9-10) -->
+        <div class="col-span-12 md:col-span-6 xl:col-span-2 bg-white rounded-2xl p-5 card-shadow border border-slate-100 flex flex-col justify-between">
+          <div class="flex items-start justify-between">
+            <div class="text-xs font-semibold text-slate-600 leading-tight">
+              จำนวนครั้งเฉลี่ย<br>ที่ส่งกลับแก้ไข
+            </div>
+            <span class="text-brand-500 bg-brand-50 p-1.5 rounded-lg text-xs">📊</span>
+          </div>
+          
+          <div class="my-2">
+            <div class="text-3xl font-extrabold text-brand-600 tracking-tight">0.0 <span class="text-base font-medium text-slate-500">ครั้ง</span></div>
+          </div>
+
+          <div class="text-[10px] text-slate-400 border-t border-slate-50 pt-2">
+            ความถี่การส่งกลับแก้ไขต่อส่วนงาน
+          </div>
+        </div>
+
+        <!-- Stat Card 2: ระยะเวลาเฉลี่ย รับงบ - เสนอ ผอ. (Cols 11-12) -->
+        <div class="col-span-12 md:col-span-6 xl:col-span-2 bg-white rounded-2xl p-5 card-shadow border border-slate-100 flex flex-col justify-between">
+          <div class="flex items-start justify-between">
+            <div class="text-xs font-semibold text-slate-600 leading-tight">
+              ระยะเวลาเฉลี่ย<br>รับงบ - เสนอ ผอ.
+            </div>
+            <span class="text-purple-500 bg-purple-50 p-1.5 rounded-lg text-xs">⏱️</span>
+          </div>
+          
+          <div class="my-2">
+            <div class="text-3xl font-extrabold text-slate-400 tracking-tight">-</div>
+          </div>
+
+          <div class="text-[10px] text-slate-400 border-t border-slate-50 pt-2">
+            เกณฑ์มาตรฐาน: ไม่เกิน 20 วันปฏิทิน
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- VIEW 3: OTHER PLACEHOLDER VIEWS -->
+    <main id="view-other" class="p-8 hidden flex items-center justify-center min-h-[60vh]">
+      <div class="bg-white rounded-2xl p-10 card-shadow border border-slate-100 max-w-md text-center">
+        <div class="w-16 h-16 rounded-2xl bg-brand-100 text-brand-600 mx-auto flex items-center justify-center text-2xl mb-4">
+          🚧
+        </div>
+        <h3 id="other-view-title" class="text-lg font-bold text-slate-800 mb-2">หน้านี้กำลังอยู่ระหว่างการพัฒนา</h3>
+        <p class="text-xs text-slate-500 mb-6 leading-relaxed">
+          โมดูลนี้จะเชื่อมโยงกับฐานข้อมูลของสำนักงานตามลำดับในเฟสถัดไป คุณสามารถกลับไปที่หน้าหลักหรือหน้า Finance Report ได้ทันที
+        </p>
+        <button onclick="navigate('home')" class="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold shadow-md transition-all">
+          ← กลับหน้าแรก (Home)
+        </button>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- MODAL 1: บันทึก/แก้ไขสถานะการเข้างาน (Attendance Check-in Modal) -->
+  <div id="attendance-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 card-shadow border border-slate-100">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+          <span>📝</span> บันทึกสถานะการเข้างาน
+        </h3>
+        <button onclick="closeAttendanceModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
+      </div>
+
+      <form id="attendance-form" onsubmit="saveAttendance(event)" class="space-y-4 text-xs">
+        <!-- เลือกบุคลากร -->
+        <div>
+          <label class="block font-medium text-slate-600 mb-1">บุคลากร</label>
+          <select id="modal-att-person" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+
+        <!-- วันที่ -->
+        <div>
+          <label class="block font-medium text-slate-600 mb-1">วันที่</label>
+          <input type="date" id="modal-att-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+        </div>
+
+        <!-- สถานะช่วงเช้า -->
+        <div>
+          <label class="block font-medium text-slate-600 mb-1">สถานะช่วงเช้า (Morning)</label>
+          <div class="grid grid-cols-3 gap-2">
+            <label class="border border-slate-200 rounded-xl p-2.5 flex items-center gap-2 cursor-pointer hover:bg-slate-50">
+              <input type="radio" name="att_am" value="office" checked class="text-brand-600 focus:ring-brand-500">
+              <span class="flex items-center gap-1 font-medium"><span class="status-dot bg-status-office"></span> Office</span>
+            </label>
+            <label class="border border-slate-200 rounded-xl p-2.5 flex items-center gap-2 cursor-pointer hover:bg-slate-50">
+              <input type="radio" name="att_am" value="wfa" class="text-brand-600 focus:ring-brand-500">
+              <span class="flex items-center gap-1 font-medium"><span class="status-dot bg-status-wfa"></span> WFA/อบรม</span>
+            </label>
+            <label class="border border-slate-200 rounded-xl p-2.5 flex items-center gap-2 cursor-pointer hover:bg-slate-50">
+              <input type="radio" name="att_am" value="leave" class="text-brand-600 focus:ring-brand-500">
+              <span class="flex items-center gap-1 font-medium"><span class="status-dot bg-status-leave"></span> ลา</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- สถานะช่วงบ่าย -->
+        <div>
+          <label class="block font-medium text-slate-600 mb-1">สถานะช่วงบ่าย (Afternoon)</label>
+          <div class="grid grid-cols-3 gap-2">
+            <label class="border border-slate-200 rounded-xl p-2.5 flex items-center gap-2 cursor-pointer hover:bg-slate-50">
+              <input type="radio" name="att_pm" value="office" checked class="text-brand-600 focus:ring-brand-500">
+              <span class="flex items-center gap-1 font-medium"><span class="status-dot bg-status-office"></span> Office</span>
+            </label>
+            <label class="border border-slate-200 rounded-xl p-2.5 flex items-center gap-2 cursor-pointer hover:bg-slate-50">
+              <input type="radio" name="att_pm" value="wfa" class="text-brand-600 focus:ring-brand-500">
+              <span class="flex items-center gap-1 font-medium"><span class="status-dot bg-status-wfa"></span> WFA/อบรม</span>
+            </label>
+            <label class="border border-slate-200 rounded-xl p-2.5 flex items-center gap-2 cursor-pointer hover:bg-slate-50">
+              <input type="radio" name="att_pm" value="leave" class="text-brand-600 focus:ring-brand-500">
+              <span class="flex items-center gap-1 font-medium"><span class="status-dot bg-status-leave"></span> ลา</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- หมายเหตุ -->
+        <div>
+          <label class="block font-medium text-slate-600 mb-1">หมายเหตุ / ภารกิจ (ถ้ามี)</label>
+          <input type="text" id="modal-att-note" placeholder="เช่น ประชุม กบม. / เข้าอบรมเทคนิคการตรวจสอบ" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closeAttendanceModal()" class="px-4 py-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 font-medium">
+            ยกเลิก
+          </button>
+          <button type="submit" class="px-5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-medium shadow-md shadow-brand-500/20">
+            บันทึกข้อมูล
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2: บันทึก/แก้ไขข้อมูลงบการเงิน (Finance Edit Modal) -->
+  <div id="finance-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 card-shadow border border-slate-100">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+          <span>📊</span> บันทึก/แก้ไขข้อมูลงวดตรวจสอบงบการเงิน
+        </h3>
+        <button onclick="closeFinanceModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
+      </div>
+
+      <form id="finance-form" onsubmit="saveFinanceRecord(event)" class="space-y-3.5 text-xs">
+        <div>
+          <label class="block font-medium text-slate-600 mb-1">ส่วนงาน / คณะ</label>
+          <input type="text" id="modal-fin-dept" readonly class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-semibold">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-600 mb-1">งวดรายงาน</label>
+            <input type="text" id="modal-fin-period" readonly class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-semibold">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-600 mb-1">ผู้รับผิดชอบ</label>
+            <input type="text" id="modal-fin-auditor" readonly class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-semibold">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-600 mb-1">วันที่ได้รับงบ (เริ่มนับ)</label>
+            <input type="date" id="modal-fin-recv-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-600 mb-1">วันที่เสนองบให้ ผอ.</label>
+            <input type="date" id="modal-fin-submit-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-600 mb-1">สถานะปัจจุบัน</label>
+          <select id="modal-fin-status" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            <option value="complete">🟢 เสร็จสิ้นเสนออธิการบดีแล้ว</option>
+            <option value="dean_approved">🟡 ผอ.เห็นชอบรายงานแล้ว</option>
+            <option value="waiting_dean">🟠 รอเห็นชอบรายงาน</option>
+            <option value="edit_required">🔴 รอแก้ไข</option>
+            <option value="sent_back">🟣 ส่งกลับแก้ไข</option>
+            <option value="pending">⚪ ยังไม่ได้รับงบ</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-600 mb-1">บันทึกข้อความ / ผลการตรวจ</label>
+          <textarea id="modal-fin-note" rows="2" placeholder="ระบุรายละเอียด เช่น ตรวจสอบแล้วไม่มีข้อสังเกต หรือส่งกลับให้แก้ไขรายการทรัพย์สิน" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closeFinanceModal()" class="px-4 py-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 font-medium">
+            ยกเลิก
+          </button>
+          <button type="submit" class="px-5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-medium shadow-md shadow-brand-500/20">
+            บันทึกการเปลี่ยนแปลง
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- APPLICATION LOGIC (JavaScript) -->
+  <script>
+    // 1. Google OAuth Client ID provided by user
+    const GOOGLE_CLIENT_ID = "1032937309757-qdbtdlmrin42ah85cedoadj1l0td73ls.apps.googleusercontent.com";
+
+    // 2. Personnel Database (ตามโครงสร้างจริงของ IACMU)
+    const PERSONNEL = [
+      { id: 'DIR01', name: 'ผอ. หยก', nickname: 'ผอ.', position: 'ผู้อำนวยการ', group: 'ผู้บริหาร', role: 'dean', email: 'director.iacmu@cmu.ac.th', am: 'office', pm: 'office', note: '' },
+      
+      // งานตรวจสอบ 1
+      { id: 'AUD01', name: 'เพลินพิศ', nickname: 'เพลิน', position: 'หัวหน้างานตรวจสอบ 1', group: 'งานตรวจสอบ 1', role: 'supervisor', email: 'plearn.iacmu@gmail.com', am: 'wfa', pm: 'office', note: 'ประชุม/อบรม' },
+      { id: 'AUD02', name: 'ทิมจิ', nickname: 'ทิมจิ', position: 'ผู้ตรวจสอบ', group: 'งานตรวจสอบ 1', role: 'auditor', email: 'timji.iacmu@gmail.com', am: 'wfa', pm: 'wfa', note: 'WFA' },
+      { id: 'AUD03', name: 'ออมมี่', nickname: 'ออมมี่', position: 'ผู้ตรวจสอบ', group: 'งานตรวจสอบ 1', role: 'auditor', email: 'aommy.iacmu@gmail.com', am: 'leave', pm: 'leave', note: 'ลาป่วย' },
+      { id: 'AUD04', name: 'แอมมี่', nickname: 'แอมมี่', position: 'ผู้ตรวจสอบ', group: 'งานตรวจสอบ 1', role: 'auditor', email: 'ammy.iacmu@gmail.com', am: 'wfa', pm: 'office', note: 'ประชุม/อบรม' },
+
+      // งานตรวจสอบ 2
+      { id: 'AUD05', name: 'น้อง', nickname: 'น้อง', position: 'หัวหน้างานตรวจสอบ 2', group: 'งานตรวจสอบ 2', role: 'supervisor', email: 'nong.iacmu@gmail.com', am: 'wfa', pm: 'office', note: '' },
+      { id: 'AUD06', name: 'ก้อยจิ', nickname: 'ก้อยจิ', position: 'ผู้ตรวจสอบ', group: 'งานตรวจสอบ 2', role: 'auditor', email: 'koyji.iacmu@gmail.com', am: 'wfa', pm: 'wfa', note: '' },
+      { id: 'AUD07', name: 'นิ่ม', nickname: 'นิ่ม', position: 'ผู้ตรวจสอบ', group: 'งานตรวจสอบ 2', role: 'auditor', email: 'nim.iacmu@gmail.com', am: 'leave', pm: 'leave', note: 'ลากิจ' },
+      { id: 'AUD08', name: 'บุกนิก', nickname: 'บุกนิก', position: 'ผู้ตรวจสอบ', group: 'งานตรวจสอบ 2', role: 'auditor', email: 'buknik.iacmu@gmail.com', am: 'office', pm: 'office', note: '' },
+
+      // งานตรวจสอบ 3
+      { id: 'AUD09', name: 'แสตมป์', nickname: 'แสตมป์', position: 'หัวหน้างานตรวจสอบ 3', group: 'งานตรวจสอบ 3', role: 'supervisor', email: 'stamp.iacmu@gmail.com', am: 'wfa', pm: 'wfa', note: '' },
+      { id: 'AUD10', name: 'หมี่', nickname: 'หมี่', position: 'ผู้ตรวจสอบ', group: 'งานตรวจสอบ 3', role: 'auditor', email: 'mee.iacmu@gmail.com', am: 'leave', pm: 'leave', note: 'ลาพักผ่อน' },
+      { id: 'AUD11', name: 'หลิน', nickname: 'หลิน', position: 'ผู้ตรวจสอบ', group: 'งานตรวจสอบ 3', role: 'auditor', email: 'lin.iacmu@gmail.com', am: 'leave', pm: 'office', note: '' },
+      { id: 'AUD12', name: 'บึม', nickname: 'บึม', position: 'ผู้ตรวจสอบ', group: 'งานตรวจสอบ 3', role: 'auditor', email: 'beum.iacmu@gmail.com', am: 'office', pm: 'office', note: '' },
+
+      // งานบริหารและธุรการ
+      { id: 'ADM01', name: 'เล็ก', nickname: 'เล็ก', position: 'เจ้าหน้าที่บริหารงานทั่วไป', group: 'งานบริหารและธุรการ', role: 'auditor', email: 'lek.iacmu@gmail.com', am: 'office', pm: 'office', note: '' },
+      { id: 'ADM02', name: 'ปุ้ย', nickname: 'ปุ้ย', position: 'ผู้ดูแลระบบ (Admin)', group: 'งานบริหารและธุรการ', role: 'admin', email: 'pui.iacmu@gmail.com', am: 'office', pm: 'office', note: '' },
+      { id: 'ADM03', name: 'เอ้', nickname: 'เอ้', position: 'เจ้าหน้าที่การเงินและพัสดุ', group: 'งานบริหารและธุรการ', role: 'auditor', email: 'ae.iacmu@gmail.com', am: 'office', pm: 'office', note: '' }
+    ];
+
+    // Current logged-in state (Default: Dean for full executive preview)
+    let currentUser = {
+      name: 'Budiono Siregar',
+      nickname: 'ผอ. หยก',
+      email: 'budiono.siregar@gmail.com',
+      role: 'dean',
+      group: 'ผู้บริหาร'
+    };
+
+    // 41 Departments Database
+    const DEPARTMENTS = [
+      { code: 'D01', name: 'คณะสัตวแพทยศาสตร์ (งบคณะ)', auditor: 'เพลิน', group: 'งานตรวจสอบ 1', status: 'complete', progress: 100 },
+      { code: 'D02', name: 'สำนักงานบริหารและจัดการทรัพย์สิน', auditor: 'ทิมจิ', group: 'งานตรวจสอบ 1', status: 'dean_approved', progress: 85 },
+      { code: 'D03', name: 'คณะวิจิตรศิลป์', auditor: 'เพลิน', group: 'งานตรวจสอบ 1', status: 'complete', progress: 100 },
+      { code: 'D04', name: 'คณะเกษตรศาสตร์', auditor: 'น้อง', group: 'งานตรวจสอบ 2', status: 'dean_approved', progress: 75 },
+      { code: 'D05', name: 'สำนักบริการวิชาการ', auditor: 'แสตมป์', group: 'งานตรวจสอบ 3', status: 'edit_required', progress: 50 },
+      { code: 'D06', name: 'สำนักส่งเสริมศิลปวัฒนธรรมและล้านนาสร้างสรรค์', auditor: 'ก้อยจิ', group: 'งานตรวจสอบ 2', status: 'pending', progress: 10 },
+      { code: 'D07', name: 'คณะสถาปัตยกรรมศาสตร์', auditor: 'หมี่', group: 'งานตรวจสอบ 3', status: 'waiting_dean', progress: 60 },
+      { code: 'D08', name: 'สำนักทะเบียนและประมวลผล', auditor: 'บุกนิก', group: 'งานตรวจสอบ 2', status: 'complete', progress: 100 },
+      { code: 'D09', name: 'วิทยาลัยพหุวิทยาการและสหวิทยาการ', auditor: 'หลิน', group: 'งานตรวจสอบ 3', status: 'pending', progress: 0 },
+      { code: 'D10', name: 'คณะแพทยศาสตร์', auditor: 'เพลิน', group: 'งานตรวจสอบ 1', status: 'complete', progress: 100 },
+      { code: 'D11', name: 'คณะทันตแพทยศาสตร์', auditor: 'ทิมจิ', group: 'งานตรวจสอบ 1', status: 'dean_approved', progress: 80 },
+      { code: 'D12', name: 'คณะเภสัชศาสตร์', auditor: 'ออมมี่', group: 'งานตรวจสอบ 1', status: 'waiting_dean', progress: 65 },
+      { code: 'D13', name: 'คณะพยาบาลศาสตร์', auditor: 'แอมมี่', group: 'งานตรวจสอบ 1', status: 'complete', progress: 100 },
+      { code: 'D14', name: 'คณะเทคนิคการแพทย์', auditor: 'น้อง', group: 'งานตรวจสอบ 2', status: 'dean_approved', progress: 75 },
+      { code: 'D15', name: 'คณะมนุษยศาสตร์', auditor: 'ก้อยจิ', group: 'งานตรวจสอบ 2', status: 'pending', progress: 0 },
+      { code: 'D16', name: 'คณะศึกษาศาสตร์', auditor: 'นิ่ม', group: 'งานตรวจสอบ 2', status: 'edit_required', progress: 40 },
+      { code: 'D17', name: 'คณะสังคมศาสตร์', auditor: 'บุกนิก', group: 'งานตรวจสอบ 2', status: 'complete', progress: 100 },
+      { code: 'D18', name: 'คณะวิทยาศาสตร์', auditor: 'แสตมป์', group: 'งานตรวจสอบ 3', status: 'waiting_dean', progress: 70 },
+      { code: 'D19', name: 'คณะวิศวกรรมศาสตร์', auditor: 'หมี่', group: 'งานตรวจสอบ 3', status: 'dean_approved', progress: 85 },
+      { code: 'D20', name: 'คณะเศรษฐศาสตร์', auditor: 'หลิน', group: 'งานตรวจสอบ 3', status: 'complete', progress: 100 },
+      { code: 'D21', name: 'คณะบริหารธุรกิจ', auditor: 'บึม', group: 'งานตรวจสอบ 3', status: 'pending', progress: 0 },
+      { code: 'D22', name: 'คณะการสื่อสารมวลชน', auditor: 'เพลิน', group: 'งานตรวจสอบ 1', status: 'complete', progress: 100 },
+      { code: 'D23', name: 'คณะรัฐศาสตร์และรัฐประศาสนศาสตร์', auditor: 'ทิมจิ', group: 'งานตรวจสอบ 1', status: 'waiting_dean', progress: 60 },
+      { code: 'D24', name: 'คณะนิติศาสตร์', auditor: 'น้อง', group: 'งานตรวจสอบ 2', status: 'complete', progress: 100 },
+      { code: 'D25', name: 'วิทยาลัยศิลปะ สื่อ และเทคโนโลยี', auditor: 'แสตมป์', group: 'งานตรวจสอบ 3', status: 'dean_approved', progress: 80 },
+      { code: 'D26', name: 'บัณฑิตวิทยาลัย', auditor: 'ก้อยจิ', group: 'งานตรวจสอบ 2', status: 'pending', progress: 0 },
+      { code: 'D27', name: 'สถาบันวิจัยวิทยาศาสตร์และเทคโนโลยี', auditor: 'นิ่ม', group: 'งานตรวจสอบ 2', status: 'complete', progress: 100 },
+      { code: 'D28', name: 'สถาบันวิจัยวิทยาศาสตร์สุขภาพ', auditor: 'หมี่', group: 'งานตรวจสอบ 3', status: 'waiting_dean', progress: 60 },
+      { code: 'D29', name: 'สถาบันวิจัยสังคม', auditor: 'หลิน', group: 'งานตรวจสอบ 3', status: 'pending', progress: 0 },
+      { code: 'D30', name: 'สำนักหอสมุด', auditor: 'บึม', group: 'งานตรวจสอบ 3', status: 'complete', progress: 100 },
+      { code: 'D31', name: 'สำนักบริการเทคโนโลยีสารสนเทศ', auditor: 'เพลิน', group: 'งานตรวจสอบ 1', status: 'dean_approved', progress: 90 },
+      { code: 'D32', name: 'สำนักงานมหาวิทยาลัย', auditor: 'ทิมจิ', group: 'งานตรวจสอบ 1', status: 'complete', progress: 100 },
+      { code: 'D33', name: 'สถาบันวิศวกรรมชีวการแพทย์', auditor: 'แอมมี่', group: 'งานตรวจสอบ 1', status: 'pending', progress: 0 },
+      { code: 'D34', name: 'ศูนย์บริหารงานวิจัย', auditor: 'น้อง', group: 'งานตรวจสอบ 2', status: 'waiting_dean', progress: 50 },
+      { code: 'D35', name: 'ศูนย์นวัตกรรมชีวภาพ', auditor: 'ก้อยจิ', group: 'งานตรวจสอบ 2', status: 'complete', progress: 100 },
+      { code: 'D36', name: 'ศูนย์พัฒนาทักษะวิชาชีพ', auditor: 'บุกนิก', group: 'งานตรวจสอบ 2', status: 'pending', progress: 0 },
+      { code: 'D37', name: 'โรงพยาบาลมหาราชนครเชียงใหม่', auditor: 'แสตมป์', group: 'งานตรวจสอบ 3', status: 'edit_required', progress: 45 },
+      { code: 'D38', name: 'ศูนย์การแพทย์สุจิณฺโณ', auditor: 'หมี่', group: 'งานตรวจสอบ 3', status: 'waiting_dean', progress: 60 },
+      { code: 'D39', name: 'ศูนย์ความเลิศทางชีววิทยาศาสตร์', auditor: 'หลิน', group: 'งานตรวจสอบ 3', status: 'complete', progress: 100 },
+      { code: 'D40', name: 'โรงเรียนสาธิตมหาวิทยาลัยเชียงใหม่', auditor: 'บึม', group: 'งานตรวจสอบ 3', status: 'complete', progress: 100 },
+      { code: 'D41', name: 'กองทุนพัฒนา มช.', auditor: 'เพลิน', group: 'งานตรวจสอบ 1', status: 'dean_approved', progress: 85 }
+    ];
+
+    // Detail Records for Bottom Table
+    const DETAIL_RECORDS = {
+      fin: [
+        { date: '01/21/25 • 12:22 am', person: 'Billie McCalister', amount: '$220.00', cat: 'Expend', note: 'Phone Repair', status: 'Approved' },
+        { date: '01/21/25 • 09:22 am', person: 'Alexandria Mora', amount: '$100.00', cat: 'Income', note: 'Investment', status: 'Completed' },
+        { date: '01/21/25 • 08:30 am', person: 'Tamara Lee', amount: '$500.00', cat: 'Income', note: 'Freelance Job', status: 'Completed' },
+        { date: '01/21/25 • 08:10 am', person: 'Natalie Dollman', amount: '$100.00', cat: 'Expend', note: 'Netflix', status: 'Pending' }
+      ],
+      train: [
+        { date: '01/15/25 • 09:00 am', person: 'เพลินพิศ (เพลิน)', amount: '6 ชม.', cat: 'อบรมวิชาชีพ', note: 'มาตรฐานการตรวจสอบสากล IIA 2025', status: 'ผ่านการอบรม' },
+        { date: '01/10/25 • 01:30 pm', person: 'ทิมจิ', amount: '3 ชม.', cat: 'สัมมนา', note: 'การตรวจสอบไซเบอร์สำหรับองค์กรการศึกษา', status: 'ผ่านการอบรม' },
+        { date: '01/05/25 • 10:00 am', person: 'แสตมป์', amount: '12 ชม.', cat: 'Workshop', note: 'Data Analytics for Internal Audit', status: 'รอออกใบประกาศ' }
+      ],
+      pay: [
+        { date: '25/01/25', person: 'ผอ. หยก', amount: '฿85,000.00', cat: 'เงินเดือน', note: 'เงินเดือน + ค่าตอบแทนตำแหน่ง', status: 'โอนสำเร็จ' },
+        { date: '25/01/25', person: 'เพลินพิศ (เพลิน)', amount: '฿42,500.00', cat: 'เงินเดือน', note: 'เงินเดือนประจำงวด ม.ค. 2568', status: 'โอนสำเร็จ' },
+        { date: '25/01/25', person: 'ปุ้ย (Admin)', amount: '฿38,000.00', cat: 'เงินเดือน', note: 'เงินเดือนประจำงวด ม.ค. 2568', status: 'โอนสำเร็จ' },
+        { date: '25/01/25', person: 'น้อง (หน.งาน 2)', amount: '฿41,200.00', cat: 'เงินเดือน', note: 'เงินเดือนประจำงวด ม.ค. 2568', status: 'โอนสำเร็จ' }
+      ]
+    };
+
+    let activeDetailTab = 'fin';
+
+    // Initialize application
+    window.addEventListener('DOMContentLoaded', () => {
+      initGoogleSignIn();
+      renderCalendar();
+      renderAttendanceList();
+      renderFinanceGauge();
+      renderDetailTable();
+      renderFinanceMatrix();
+      updateRoleUI();
+      populatePersonSelect();
+      
+      // Set default date in modal
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('modal-att-date').value = today;
+    });
+
+    // -------------------------------------------------------------
+    // NAVIGATION
+    // -------------------------------------------------------------
+    function navigate(viewName) {
+      const views = ['home', 'finance', 'training', 'payroll', 'budget', 'hr', 'admin'];
+      
+      // Check permission for payroll & admin
+      if (viewName === 'payroll' && currentUser.role !== 'dean' && currentUser.role !== 'admin') {
+        alert('เฉพาะผู้บริหาร (Dean) และ Admin เท่านั้นที่สามารถเข้าถึงงานเงินเดือนได้');
+        return;
+      }
+      if (viewName === 'admin' && currentUser.role !== 'admin') {
+        alert('เฉพาะ Admin เท่านั้นที่สามารถเข้าถึงระบบ Administration ได้');
+        return;
+      }
+
+      // Update sidebar icons
+      document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.classList.remove('bg-brand-500', 'text-white', 'shadow-md', 'shadow-brand-500/25');
+        btn.classList.add('text-slate-400');
+      });
+
+      const activeBtn = document.getElementById(`nav-btn-${viewName}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-slate-400');
+        activeBtn.classList.add('bg-brand-500', 'text-white', 'shadow-md', 'shadow-brand-500/25');
+      }
+
+      // Toggle views
+      document.getElementById('view-home').classList.add('hidden');
+      document.getElementById('view-finance').classList.add('hidden');
+      document.getElementById('view-other').classList.add('hidden');
+
+      if (viewName === 'home') {
+        document.getElementById('view-home').classList.remove('hidden');
+      } else if (viewName === 'finance') {
+        document.getElementById('view-finance').classList.remove('hidden');
+      } else {
+        document.getElementById('view-other').classList.remove('hidden');
+        const titles = {
+          training: 'ประวัติการอบรม (Training & Development)',
+          payroll: 'งานเงินเดือน (Payroll Management)',
+          budget: 'งานงบประมาณ (Budget Planning & Execution)',
+          hr: 'งานบุคคล (Human Resources)',
+          admin: 'การบริหารจัดการระบบ (System Administration)'
+        };
+        document.getElementById('other-view-title').textContent = titles[viewName] || 'หน้านี้กำลังอยู่ระหว่างการพัฒนา';
+      }
+    }
+
+    // -------------------------------------------------------------
+    // GOOGLE SIGN-IN SETUP (GSI SDK)
+    // -------------------------------------------------------------
+    function initGoogleSignIn() {
+      if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+        try {
+          google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleGoogleCredentialResponse,
+            auto_select: false,
+            cancel_on_tap_outside: true
+          });
+
+          google.accounts.id.renderButton(
+            document.getElementById("google-login-btn"),
+            { 
+              theme: "filled_blue", 
+              size: "medium", 
+              shape: "pill",
+              text: "signin",
+              locale: "th"
+            }
+          );
+        } catch (e) {
+          console.warn("GSI init info:", e);
+        }
+      }
+    }
+
+    // Parse Google JWT ID Token
+    function parseJwt(token) {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      return JSON.parse(jsonPayload);
+    }
+
+    // Handle real login response from Google
+    function handleGoogleCredentialResponse(response) {
+      try {
+        const payload = parseJwt(response.credential);
+        const email = payload.email.toLowerCase();
+        
+        // Find in our personnel database
+        const person = PERSONNEL.find(p => p.email.toLowerCase() === email);
+        
+        currentUser = {
+          name: payload.name || 'CMU User',
+          nickname: person ? person.nickname : (payload.given_name || 'User'),
+          email: email,
+          role: person ? person.role : 'auditor',
+          group: person ? person.group : 'งานตรวจสอบ 1',
+          picture: payload.picture
+        };
+
+        if (payload.picture) {
+          document.getElementById('user-avatar-img').src = payload.picture;
+        }
+        
+        updateRoleUI();
+        renderAttendanceList();
+        renderDetailTable();
+        alert(`ยินดีต้อนรับคุณ ${currentUser.name}\nเข้าสู่ระบบในฐานะ: ${currentUser.role} (${currentUser.group})`);
+      } catch (err) {
+        console.error("Login Error:", err);
+      }
+    }
+
+    // Fast Role Switcher (Simulator for testing all permissions)
+    function simulateRoleChange(roleKey) {
+      const profiles = {
+        dean: { name: 'ผอ. หยก', nickname: 'ผอ.', email: 'director.iacmu@cmu.ac.th', role: 'dean', group: 'ผู้บริหาร' },
+        admin: { name: 'ปุ้ย (Admin)', nickname: 'ปุ้ย', email: 'pui.iacmu@gmail.com', role: 'admin', group: 'งานบริหารและธุรการ' },
+        supervisor1: { name: 'เพลินพิศ (หน.งาน 1)', nickname: 'เพลิน', email: 'plearn.iacmu@gmail.com', role: 'supervisor', group: 'งานตรวจสอบ 1' },
+        auditor_plearn: { name: 'เพลินพิศ', nickname: 'เพลิน', email: 'plearn.iacmu@gmail.com', role: 'auditor', group: 'งานตรวจสอบ 1' },
+        auditor_nong: { name: 'น้อง (หน.งาน 2)', nickname: 'น้อง', email: 'nong.iacmu@gmail.com', role: 'auditor', group: 'งานตรวจสอบ 2' },
+        auditor_stamp: { name: 'แสตมป์ (หน.งาน 3)', nickname: 'แสตมป์', email: 'stamp.iacmu@gmail.com', role: 'auditor', group: 'งานตรวจสอบ 3' }
+      };
+
+      const p = profiles[roleKey];
+      if (p) {
+        currentUser = { ...currentUser, ...p };
+        updateRoleUI();
+        renderAttendanceList();
+        renderDetailTable();
+      }
+    }
+
+    function updateRoleUI() {
+      document.getElementById('user-display-name').textContent = currentUser.name;
+      document.getElementById('user-display-email').textContent = `${currentUser.email} (${currentUser.role})`;
+
+      // Manage nav visibility
+      const adminNav = document.getElementById('nav-btn-admin');
+      const payrollNav = document.getElementById('nav-btn-payroll');
+
+      if (currentUser.role === 'admin') {
+        adminNav.style.display = 'flex';
+        payrollNav.style.display = 'flex';
+      } else if (currentUser.role === 'dean') {
+        adminNav.style.display = 'none';
+        payrollNav.style.display = 'flex';
+      } else {
+        adminNav.style.display = 'none';
+        payrollNav.style.display = 'none';
+      }
+
+      // Notice update
+      const notice = document.getElementById('role-view-notice');
+      if (currentUser.role === 'dean' || currentUser.role === 'admin') {
+        notice.textContent = 'มุมมองผู้บริหาร: แสดงบุคลากรทุกกลุ่มงาน';
+      } else {
+        notice.textContent = `มุมมองประจำทีม: แสดงเฉพาะ ${currentUser.group}`;
+      }
+    }
+
+    function handleLogout() {
+      if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
+        simulateRoleChange('dean');
+        alert('ออกจากระบบเรียบร้อยแล้ว');
+      }
+    }
+
+    // -------------------------------------------------------------
+    // CALENDAR RENDERER
+    // -------------------------------------------------------------
+    function renderCalendar() {
+      const container = document.getElementById('calendar-days-container');
+      container.innerHTML = '';
+
+      // Month: Jan 2025 (Starts on Wednesday -> offset 2)
+      // Days 1 to 31
+      const totalDays = 31;
+      const startDayOffset = 2; // Wed
+
+      // Empty lead days
+      for (let i = 0; i < startDayOffset; i++) {
+        container.innerHTML += `<div class="p-2 border border-slate-50/60 rounded-xl bg-slate-50/30 text-slate-300 min-h-[58px]"></div>`;
+      }
+
+      for (let day = 1; day <= totalDays; day++) {
+        const isToday = day === 2; // Highlight day 2 as in mock
+        const hasCounts = day === 2 || day === 3 || day === 4;
+
+        let content = '';
+        if (day === 2) {
+          content = `
+            <div class="mt-1 text-[10px] space-y-0.5">
+              <div class="bg-purple-100 text-brand-700 font-semibold px-1 py-0.2 rounded">เช้า 12</div>
+              <div class="bg-indigo-100 text-indigo-700 font-semibold px-1 py-0.2 rounded">บ่าย 16</div>
+            </div>
+          `;
+        } else if (day === 3) {
+          content = `
+            <div class="mt-1 text-[10px] space-y-0.5">
+              <div class="bg-purple-50 text-brand-600 px-1 py-0.2 rounded">เช้า 14</div>
+              <div class="bg-purple-50 text-brand-600 px-1 py-0.2 rounded">บ่าย 14</div>
+            </div>
+          `;
+        }
+
+        container.innerHTML += `
+          <div onclick="selectCalendarDay(${day})" class="p-1.5 border ${isToday ? 'border-brand-500 bg-brand-50/40 ring-1 ring-brand-500' : 'border-slate-100 hover:border-brand-200'} rounded-xl transition-all min-h-[58px] cursor-pointer flex flex-col justify-between">
+            <span class="font-medium text-slate-700 text-[11px]">${day}</span>
+            ${content}
+          </div>
+        `;
+      }
+    }
+
+    function selectCalendarDay(day) {
+      alert(`คุณเลือกดูข้อมูลวันที่ ${day} มกราคม 2568`);
+    }
+
+    // -------------------------------------------------------------
+    // ATTENDANCE LIST (WITH RBAC: Dean sees all, User sees team)
+    // -------------------------------------------------------------
+    function renderAttendanceList() {
+      const container = document.getElementById('attendance-list-container');
+      container.innerHTML = '';
+
+      // Filter personnel based on role
+      let visiblePersons = PERSONNEL;
+      if (currentUser.role !== 'dean' && currentUser.role !== 'admin') {
+        visiblePersons = PERSONNEL.filter(p => p.group === currentUser.group || p.role === 'dean');
+      }
+
+      // Group by department
+      const groups = ['ผู้บริหาร', 'งานตรวจสอบ 1', 'งานตรวจสอบ 2', 'งานตรวจสอบ 3', 'งานบริหารและธุรการ'];
+
+      groups.forEach(groupName => {
+        const members = visiblePersons.filter(p => p.group === groupName);
+        if (members.length === 0) return;
+
+        let groupHtml = `
+          <div>
+            <div class="text-[11px] font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
+              <span>${groupName}</span>
+            </div>
+            <div class="space-y-1.5 pl-2">
+        `;
+
+        members.forEach(p => {
+          const amBadge = getStatusBadge(p.am);
+          const pmBadge = getStatusBadge(p.pm);
+          const isMe = p.email.toLowerCase() === currentUser.email.toLowerCase();
+
+          groupHtml += `
+            <div class="flex items-center justify-between py-1 text-xs hover:bg-slate-50 px-1.5 rounded-lg transition-all ${isMe ? 'bg-brand-50/70 border-l-2 border-brand-500' : ''}">
+              <div class="flex items-center gap-2">
+                <span class="status-dot ${getDotColor(p.am)}"></span>
+                <span class="font-medium text-slate-700">${p.nickname}</span>
+                ${isMe ? '<span class="text-[9px] bg-brand-200 text-brand-900 px-1 rounded font-bold">ฉัน</span>' : ''}
+              </div>
+              <div class="flex items-center gap-3 text-[11px]">
+                <span class="${amBadge.class}">${amBadge.text}</span>
+                <span class="${pmBadge.class}">${pmBadge.text}</span>
+              </div>
+            </div>
+          `;
+        });
+
+        groupHtml += `</div></div>`;
+        container.innerHTML += groupHtml;
+      });
+    }
+
+    function getDotColor(status) {
+      if (status === 'office') return 'bg-status-office';
+      if (status === 'leave') return 'bg-status-leave';
+      return 'bg-status-wfa';
+    }
+
+    function getStatusBadge(status) {
+      if (status === 'office') return { text: 'Office', class: 'text-emerald-700 font-semibold' };
+      if (status === 'leave') return { text: 'ลา', class: 'text-red-600 font-semibold' };
+      return { text: 'WFA/อบรม', class: 'text-amber-600 font-semibold' };
+    }
+
+    // -------------------------------------------------------------
+    // FINANCE DONUT / GAUGE CHART
+    // -------------------------------------------------------------
+    let gaugeChartInstance = null;
+    function renderFinanceGauge() {
+      const ctx = document.getElementById('financeGaugeChart').getContext('2d');
+      if (gaugeChartInstance) gaugeChartInstance.destroy();
+
+      gaugeChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['เสร็จสิ้น', 'ระหว่างดำเนินการ', 'รอเอกสาร'],
+          datasets: [{
+            data: [59.5, 24.4, 16.1],
+            backgroundColor: ['#7952E0', '#FBBF24', '#3B82F6'],
+            borderWidth: 0,
+            circumference: 180,
+            rotation: 270,
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '72%',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => ` ${ctx.label}: ${ctx.raw}%`
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // -------------------------------------------------------------
+    // BOTTOM MULTI-TAB TABLE (FINANCE / TRAINING / PAYROLL)
+    // -------------------------------------------------------------
+    function switchDetailTab(tabKey) {
+      if (tabKey === 'pay' && currentUser.role !== 'dean' && currentUser.role !== 'admin') {
+        alert('เฉพาะผู้บริหาร (Dean) และ Admin เท่านั้นที่สามารถดูแท็บเงินเดือนได้');
+        return;
+      }
+
+      activeDetailTab = tabKey;
+      ['fin', 'train', 'pay'].forEach(k => {
+        const btn = document.getElementById(`tab-btn-${k}`);
+        btn.classList.remove('bg-brand-500', 'text-white', 'shadow-sm');
+        btn.classList.add('text-slate-600');
+      });
+
+      const active = document.getElementById(`tab-btn-${tabKey}`);
+      active.classList.remove('text-slate-600');
+      active.classList.add('bg-brand-500', 'text-white', 'shadow-sm');
+
+      renderDetailTable();
+    }
+
+    function renderDetailTable() {
+      const headers = document.getElementById('table-dynamic-headers');
+      const body = document.getElementById('table-dynamic-body');
+      const countLabel = document.getElementById('table-row-count');
+
+      const data = DETAIL_RECORDS[activeDetailTab] || [];
+      countLabel.textContent = `แสดง ${data.length} รายการ`;
+      body.innerHTML = '';
+
+      if (activeDetailTab === 'fin') {
+        headers.innerHTML = `
+          <th class="py-2.5 px-3">TRANSACTION DATE</th>
+          <th class="py-2.5 px-3">NAME PERSON</th>
+          <th class="py-2.5 px-3">AMOUNT</th>
+          <th class="py-2.5 px-3">CATEGORY</th>
+          <th class="py-2.5 px-3">NOTE</th>
+          <th class="py-2.5 px-3 text-right">ACTION</th>
+        `;
+        data.forEach(r => {
+          body.innerHTML += `
+            <tr class="hover:bg-slate-50 transition-all">
+              <td class="py-3 px-3 text-slate-500">${r.date}</td>
+              <td class="py-3 px-3 font-semibold text-slate-800">${r.person}</td>
+              <td class="py-3 px-3 font-bold text-slate-800">${r.amount}</td>
+              <td class="py-3 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-medium ${r.cat === 'Income' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}">${r.cat}</span></td>
+              <td class="py-3 px-3 text-slate-600">${r.note}</td>
+              <td class="py-3 px-3 text-right text-slate-400 hover:text-slate-700 cursor-pointer">•••</td>
+            </tr>
+          `;
+        });
+      } else if (activeDetailTab === 'train') {
+        headers.innerHTML = `
+          <th class="py-2.5 px-3">วันที่จัดอบรม</th>
+          <th class="py-2.5 px-3">ชื่อบุคลากร</th>
+          <th class="py-2.5 px-3">ชั่วโมงสะสม</th>
+          <th class="py-2.5 px-3">ประเภทหลักสูตร</th>
+          <th class="py-2.5 px-3">ชื่อหลักสูตร / หัวข้อ</th>
+          <th class="py-2.5 px-3 text-right">สถานะ</th>
+        `;
+        data.forEach(r => {
+          body.innerHTML += `
+            <tr class="hover:bg-slate-50 transition-all">
+              <td class="py-3 px-3 text-slate-500">${r.date}</td>
+              <td class="py-3 px-3 font-semibold text-slate-800">${r.person}</td>
+              <td class="py-3 px-3 font-bold text-brand-700">${r.amount}</td>
+              <td class="py-3 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-50 text-brand-700">${r.cat}</span></td>
+              <td class="py-3 px-3 text-slate-600">${r.note}</td>
+              <td class="py-3 px-3 text-right"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">${r.status}</span></td>
+            </tr>
+          `;
+        });
+      } else if (activeDetailTab === 'pay') {
+        headers.innerHTML = `
+          <th class="py-2.5 px-3">งวดโอนเงิน</th>
+          <th class="py-2.5 px-3">ชื่อ-สกุล บุคลากร</th>
+          <th class="py-2.5 px-3">ยอดเงินสุทธิ</th>
+          <th class="py-2.5 px-3">ประเภท</th>
+          <th class="py-2.5 px-3">คำอธิบาย</th>
+          <th class="py-2.5 px-3 text-right">สถานะโอน</th>
+        `;
+        data.forEach(r => {
+          body.innerHTML += `
+            <tr class="hover:bg-slate-50 transition-all">
+              <td class="py-3 px-3 text-slate-500">${r.date}</td>
+              <td class="py-3 px-3 font-semibold text-slate-800">${r.person}</td>
+              <td class="py-3 px-3 font-bold text-indigo-700">${r.amount}</td>
+              <td class="py-3 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 text-indigo-700">${r.cat}</span></td>
+              <td class="py-3 px-3 text-slate-600">${r.note}</td>
+              <td class="py-3 px-3 text-right"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">${r.status}</span></td>
+            </tr>
+          `;
+        });
+      }
+    }
+
+    function exportTableToCSV() {
+      const data = DETAIL_RECORDS[activeDetailTab] || [];
+      if (data.length === 0) return alert('ไม่มีข้อมูลสำหรับส่งออก');
+      
+      let csv = "DATA EXPORT (" + activeDetailTab.toUpperCase() + ")\n";
+      csv += Object.keys(data[0]).join(",") + "\n";
+      data.forEach(row => {
+        csv += Object.values(row).map(v => `"${v}"`).join(",") + "\n";
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `IACMU_${activeDetailTab}_export.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // -------------------------------------------------------------
+    // VIEW 2: FINANCE MATRIX (41 DEPARTMENTS)
+    // -------------------------------------------------------------
+    function renderFinanceMatrix() {
+      const tbody = document.getElementById('finance-matrix-body');
+      tbody.innerHTML = '';
+
+      DEPARTMENTS.forEach((dept, index) => {
+        const rowId = `dept-row-${index}`;
+        tbody.innerHTML += `
+          <tr class="hover:bg-purple-50/40 transition-all cursor-pointer group" onclick="openFinanceModal('${dept.name}', 'ไตรมาส 1')">
+            <td class="py-3 px-3">
+              <div class="font-semibold text-slate-800 group-hover:text-brand-600 transition-colors">${dept.name}</div>
+              <div class="text-[11px] text-slate-400 flex items-center gap-1.5">
+                <span>👤 ${dept.auditor}</span>
+                <span>•</span>
+                <span>${dept.group}</span>
+              </div>
+            </td>
+            ${renderMonthCell(dept, 'oct')}
+            ${renderMonthCell(dept, 'nov')}
+            ${renderMonthCell(dept, 'dec')}
+            ${renderMonthCell(dept, 'jan', true)}
+            ${renderMonthCell(dept, 'feb')}
+            ${renderMonthCell(dept, 'mar')}
+            ${renderMonthCell(dept, 'apr', true)}
+            ${renderMonthCell(dept, 'may')}
+            ${renderMonthCell(dept, 'jun')}
+            ${renderMonthCell(dept, 'jul', true)}
+            ${renderMonthCell(dept, 'aug')}
+            ${renderMonthCell(dept, 'sep', true)}
+            <td class="py-3 px-3 text-center">
+              <div class="flex items-center gap-2 justify-center">
+                <div class="w-16 bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                  <div class="bg-brand-500 h-full" style="width: ${dept.progress}%"></div>
+                </div>
+                <span class="text-[11px] font-bold text-slate-600">${dept.progress}%</span>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function renderMonthCell(dept, monthKey, isQuarter = false) {
+      let badge = '<span class="w-2 h-2 rounded-full bg-slate-200 inline-block"></span>';
+      
+      if (dept.status === 'complete') {
+        badge = '<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" title="เสร็จสิ้นเสนออธิการบดีแล้ว"></span>';
+      } else if (dept.status === 'dean_approved') {
+        badge = '<span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" title="ผอ.เห็นชอบรายงาน"></span>';
+      } else if (dept.status === 'waiting_dean') {
+        badge = '<span class="w-2.5 h-2.5 rounded-full bg-orange-400 inline-block" title="รอเห็นชอบรายงาน"></span>';
+      } else if (dept.status === 'edit_required') {
+        badge = '<span class="w-2.5 h-2.5 rounded-full bg-red-400 inline-block" title="รอแก้ไข"></span>';
+      }
+
+      const bgClass = isQuarter ? 'bg-purple-50/50' : '';
+      return `<td class="py-3 px-2 text-center ${bgClass}">${badge}</td>`;
+    }
+
+    function applyFinanceFilters() {
+      const year = document.getElementById('fin-filter-year').value;
+      const group = document.getElementById('fin-filter-group').value;
+      const auditor = document.getElementById('fin-filter-auditor').value;
+
+      alert(`กรองข้อมูล:\nปีงบประมาณ: ${year}\nกลุ่มงาน: ${group}\nผู้ตรวจสอบ: ${auditor}`);
+    }
+
+    // -------------------------------------------------------------
+    // MODALS: ATTENDANCE & FINANCE
+    // -------------------------------------------------------------
+    function populatePersonSelect() {
+      const sel = document.getElementById('modal-att-person');
+      sel.innerHTML = '';
+      PERSONNEL.forEach(p => {
+        sel.innerHTML += `<option value="${p.id}">${p.name} (${p.nickname}) - ${p.group}</option>`;
+      });
+    }
+
+    function openAttendanceModal() {
+      document.getElementById('attendance-modal').classList.remove('hidden');
+    }
+    function closeAttendanceModal() {
+      document.getElementById('attendance-modal').classList.add('hidden');
+    }
+
+    function saveAttendance(e) {
+      e.preventDefault();
+      const personId = document.getElementById('modal-att-person').value;
+      const am = document.querySelector('input[name="att_am"]:checked').value;
+      const pm = document.querySelector('input[name="att_pm"]:checked').value;
+      const note = document.getElementById('modal-att-note').value;
+
+      const p = PERSONNEL.find(x => x.id === personId);
+      if (p) {
+        p.am = am;
+        p.pm = pm;
+        p.note = note;
+        renderAttendanceList();
+        closeAttendanceModal();
+        alert(`บันทึกสถานะการเข้างานของ "${p.nickname}" สำเร็จ!`);
+      }
+    }
+
+    function openFinanceModal(deptName = 'คณะวิจิตรศิลป์', periodName = 'ตุลาคม 69') {
+      document.getElementById('modal-fin-dept').value = deptName;
+      document.getElementById('modal-fin-period').value = periodName;
+      document.getElementById('modal-fin-auditor').value = 'เพลินพิศ (เพลิน)';
+      document.getElementById('modal-fin-recv-date').value = '2025-01-05';
+      document.getElementById('modal-fin-submit-date').value = '2025-01-10';
+      document.getElementById('finance-modal').classList.remove('hidden');
+    }
+    function closeFinanceModal() {
+      document.getElementById('finance-modal').classList.add('hidden');
+    }
+
+    function saveFinanceRecord(e) {
+      e.preventDefault();
+      const deptName = document.getElementById('modal-fin-dept').value;
+      const status = document.getElementById('modal-fin-status').value;
+      
+      const dept = DEPARTMENTS.find(d => d.name.includes(deptName) || deptName.includes(d.name));
+      if (dept) {
+        dept.status = status;
+        if (status === 'complete') dept.progress = 100;
+        else if (status === 'dean_approved') dept.progress = 85;
+        renderFinanceMatrix();
+      }
+
+      closeFinanceModal();
+      alert(`บันทึกข้อมูลงบการเงินของ "${deptName}" เรียบร้อยแล้ว`);
+    }
+
+    function toggleProfileMenu() {
+      // Toggle role simulator
+      const sel = document.getElementById('role-selector');
+      sel.focus();
+    }
+  </script>
+
+</body>
+</html>
