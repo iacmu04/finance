@@ -493,16 +493,17 @@
               </div>
             </div>
 
-            <!-- Mini Progress bar -->
-            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3 flex">
-              <div class="bg-status-office h-full" style="width: 70%"></div>
-              <div class="bg-status-wfa h-full" style="width: 15%"></div>
-              <div class="bg-status-leave h-full" style="width: 15%"></div>
+            <!-- Mini Progress bar (สัดส่วนจริงของวันที่เลือก) -->
+            <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden mt-4 flex">
+              <div id="bar-att-office" class="bg-status-office h-full transition-all duration-300" style="width: 100%"></div>
+              <div id="bar-att-leave" class="bg-status-leave h-full transition-all duration-300" style="width: 0%"></div>
+              <div id="bar-att-train" class="bg-brand-400 h-full transition-all duration-300" style="width: 0%"></div>
+              <div id="bar-att-wfa" class="bg-status-wfa h-full transition-all duration-300" style="width: 0%"></div>
             </div>
           </div>
 
-          <div class="text-[11px] text-emerald-600 font-medium text-right mt-2 flex items-center justify-end gap-1">
-            <span>↑ 33% จากสัปดาห์ก่อน</span>
+          <div id="att-summary-ratio" class="text-[11px] text-slate-400 text-right mt-2">
+            เข้า Office 100%
           </div>
         </div>
 
@@ -2327,6 +2328,27 @@
       if (document.getElementById('stat-train-pm')) document.getElementById('stat-train-pm').textContent = trainPm;
       if (document.getElementById('stat-wfa-am')) document.getElementById('stat-wfa-am').textContent = wfaAm;
       if (document.getElementById('stat-wfa-pm')) document.getElementById('stat-wfa-pm').textContent = wfaPm;
+
+      // อัปเดตแถบสัดส่วนจริงของวันที่เลือก (เฉลี่ยภาคเช้า-บ่าย)
+      const totalSlots = Math.max(1, totalAuditors * 2);
+      const officePct = (((officeAm + officePm) / totalSlots) * 100).toFixed(1);
+      const leavePct = (((leaveAm + leavePm) / totalSlots) * 100).toFixed(1);
+      const trainPct = (((trainAm + trainPm) / totalSlots) * 100).toFixed(1);
+      const wfaPct = (((wfaAm + wfaPm) / totalSlots) * 100).toFixed(1);
+
+      const barOff = document.getElementById('bar-att-office');
+      const barLeave = document.getElementById('bar-att-leave');
+      const barTrain = document.getElementById('bar-att-train');
+      const barWfa = document.getElementById('bar-att-wfa');
+      if (barOff) { barOff.style.width = `${officePct}%`; barOff.title = `ทำงานใน Office ${officePct}%`; }
+      if (barLeave) { barLeave.style.width = `${leavePct}%`; barLeave.title = `ลา ${leavePct}%`; }
+      if (barTrain) { barTrain.style.width = `${trainPct}%`; barTrain.title = `ประชุม/อบรม ${trainPct}%`; }
+      if (barWfa) { barWfa.style.width = `${wfaPct}%`; barWfa.title = `WFA ${wfaPct}%`; }
+
+      const ratioEl = document.getElementById('att-summary-ratio');
+      if (ratioEl) {
+        ratioEl.textContent = `สัดส่วนเข้า Office ${officePct}% (รวม ${totalAuditors} คน)`;
+      }
     }
 
     function getWorkTypeDotColor(type) {
