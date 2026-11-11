@@ -901,16 +901,16 @@
             </div>
           </div>
 
-          <!-- KPI 4: แจ้งเตือนถึงวันที่ 18 (เกณฑ์ 20 วัน) -->
+          <!-- KPI 4: แจ้งเตือนถึงวันที่ (ปรับตั้งค่าได้โดย Admin) -->
           <div class="bg-white rounded-2xl p-4 sm:p-5 card-shadow border border-slate-100 flex flex-col justify-between hover:border-red-300 hover:shadow-md transition-all group">
             <div class="flex items-start justify-between">
               <div>
                 <h4 class="text-xs font-bold text-red-600 flex items-center gap-1">
                   <span>⚠️</span> แจ้งเตือนถึงวันที่ <span id="kpi-alert-threshold-days">18</span>
                 </h4>
-                <p class="text-[11px] text-slate-400">เกณฑ์ครบกำหนด <span id="kpi-setting-display">20</span> วัน <span onclick="event.stopPropagation(); openConfigModal();" class="text-brand-600 cursor-pointer hover:underline font-medium">(ตั้งค่า ⚙️)</span></p>
+                <p class="text-[11px] text-slate-400">เกณฑ์ครบกำหนด <span id="kpi-setting-display">20</span> วัน <span id="btn-open-kpi-config" onclick="event.stopPropagation(); openConfigModal();" class="text-brand-600 cursor-pointer hover:underline font-medium">(ตั้งค่า ⚙️)</span></p>
               </div>
-              <div class="w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center font-bold text-sm cursor-pointer shrink-0" onclick="openConfigModal()">
+              <div id="btn-bell-kpi-config" class="w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center font-bold text-sm cursor-pointer shrink-0" onclick="showKpiListModal('แจ้งเตือนเกินกำหนด')">
                 🔔
               </div>
             </div>
@@ -1091,7 +1091,7 @@
             </div>
             <div>
               <label class="block font-semibold text-slate-700 mb-1">งวดรายงาน <span id="modal-fin-cycle-badge" class="text-[10px] text-brand-600 font-normal">(รายเดือน)</span></label>
-              <select id="modal-fin-period" onchange="calculateAutoStatus()" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <select id="modal-fin-period" onchange="onModalPeriodChange()" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
                 <!-- Populated dynamically -->
               </select>
             </div>
@@ -1220,14 +1220,19 @@
 
       <div class="space-y-3">
         <p class="text-slate-500 leading-relaxed">
-          เกณฑ์มาตรฐานระยะเวลาตรวจนับจาก <b>"วันที่ผู้ตรวจสอบได้รับงบ"</b> ถึง <b>"วันที่เสนองบให้ ผอ."</b>
+          เกณฑ์ระยะเวลาตรวจนับจาก <b>"วันที่ผู้ตรวจสอบได้รับงบ"</b> ถึง <b>"วันที่เสนองบให้ ผอ."</b>
         </p>
         <div>
-          <label class="block font-medium text-slate-700 mb-1">จำนวนวันเกณฑ์มาตรฐาน (ชีท Config):</label>
-          <input type="number" id="input-kpi-days" min="1" max="60" value="20" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-brand-700 text-base focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          <label class="block font-medium text-slate-700 mb-1">จำนวนวันเกณฑ์มาตรฐาน (KPI_DAYS ในชีท Config):</label>
+          <input type="number" id="input-kpi-days" min="1" max="90" value="20" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-brand-700 text-base focus:ring-2 focus:ring-brand-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">ระยะเวลาแจ้งเตือนเมื่อค้างตรวจ (ALERT_DAYS ในชีท Config):</label>
+          <input type="number" id="input-alert-days" min="1" max="90" value="18" class="w-full bg-amber-50/70 border border-amber-200 rounded-xl px-3 py-2 font-bold text-amber-700 text-base focus:ring-2 focus:ring-amber-500 focus:outline-none">
         </div>
         <p class="text-[11px] text-slate-400">
-          * ระบบจะแจ้งเตือนเมื่อระยะเวลาผ่านไปถึงวันที่ (เกณฑ์ - 2 วัน) เช่น 18 วัน
+          * ระบบจะแจ้งเตือนเมื่อรับงบครบตามจำนวนวันแจ้งเตือนนี้ (เช่น 15 วัน หรือ 18 วัน) และยังไม่ได้เสนอ ผอ. <br>
+          * สงวนสิทธิ์แก้ไขได้เฉพาะผู้ดูแลระบบ (<b>Admin</b>) เท่านั้น
         </p>
       </div>
 
@@ -1801,10 +1806,14 @@
         });
 
         // 7. Config
-        const configs = { KPI_DAYS: 20 };
+        const configs = { KPI_DAYS: 20, ALERT_DAYS: 18 };
         cfgRows.forEach(r => {
-          if (r[0] && r[0] !== 'Key') configs[r[0]] = parseInt(r[1], 10) || r[1];
+          const k = (r[0] || '').toString().trim();
+          if (k && k !== 'Key') configs[k] = parseInt(r[1], 10) || r[1];
         });
+        if (!configs.ALERT_DAYS) {
+          configs.ALERT_DAYS = Math.max(1, (parseInt(configs.KPI_DAYS, 10) || 20) - 2);
+        }
 
         sheetData = { departments, auditors, trackingList, editList, officeList, holidays, configs };
 
@@ -1866,8 +1875,9 @@
         return { code: 5, label: 'ผอ.เห็นชอบ', color: 'bg-teal-50 text-teal-800 border-teal-200', dot: 'bg-teal-400' };
       }
 
-      // 4. ระหว่างแก้ไข (มีรายการในชีท Edit ที่ยังไม่ส่งคืน ผอ.)
-      const edits = sheetData.editList.filter(e => e.trackingId === trackRecord.trackingId);
+      // 4. ระหว่างแก้ไข (อ้างอิงเฉพาะรหัสงานตรวจสอบ Col A Tracking === Col B Edit)
+      const tid = (trackRecord.trackingId || '').toString().trim();
+      const edits = tid ? sheetData.editList.filter(e => (e.trackingId || '').toString().trim() === tid) : [];
       const hasPendingEdit = edits.some(e => e.status === 'รอแก้ไข' || !e.dateResubmitted);
       if (hasPendingEdit) {
         return { code: 4, label: 'ระหว่างแก้ไข', color: 'bg-rose-50 text-rose-800 border-rose-200', dot: 'bg-rose-500' };
@@ -1968,7 +1978,11 @@
       const adminNav = document.getElementById('nav-btn-admin');
       const payrollNav = document.getElementById('nav-btn-payroll');
 
-      if (currentUser.role === 'admin') {
+      const kpiConfigBtn = document.getElementById('btn-open-kpi-config');
+      const isAdmin = (currentUser.role || '').toLowerCase() === 'admin';
+      if (kpiConfigBtn) kpiConfigBtn.style.display = isAdmin ? 'inline' : 'none';
+
+      if (isAdmin) {
         if (adminNav) adminNav.style.display = 'flex';
         if (payrollNav) payrollNav.style.display = 'flex';
       } else if (currentUser.role === 'dean') {
@@ -2626,10 +2640,11 @@
       const st = getStatusRule(matching);
       const bgClass = isQuarter ? 'bg-purple-50/40 border-x border-purple-100/50' : '';
 
-      // Count edits from sheet Edit (Item 8)
+      // Count edits strictly by matching.trackingId (Col A Tracking === Col B Edit)
       let editBadge = '';
       if (matching && matching.trackingId) {
-        const edits = sheetData.editList.filter(e => e.trackingId === matching.trackingId);
+        const mTid = matching.trackingId.toString().trim();
+        const edits = sheetData.editList.filter(e => (e.trackingId || '').toString().trim() === mTid);
         const editCount = edits.length;
         if (editCount > 0) {
           editBadge = `<span class="text-[9px] font-bold text-rose-600 block leading-none mt-1" title="แก้ไข ${editCount} ครั้ง">แก้ ${editCount}</span>`;
@@ -2758,14 +2773,6 @@
         deptSel.innerHTML += `<option value="${d.name}" ${d.name === defaultDeptName ? 'selected' : ''}>${d.name}</option>`;
       });
 
-      if (defaultDeptName) {
-        deptSel.value = defaultDeptName;
-        onDepartmentSelectChange(defaultPeriod);
-      } else if (sheetData.departments.length > 0) {
-        deptSel.selectedIndex = 1;
-        onDepartmentSelectChange(defaultPeriod);
-      }
-
       // Configure Dean Edit Section visibility
       const editSec = document.getElementById('dean-edit-section');
       const approveBtn = document.getElementById('btn-dean-approve-quick');
@@ -2774,13 +2781,13 @@
       if (editSec) editSec.style.display = isDeanOrAdmin ? 'block' : 'none';
       if (approveBtn) approveBtn.style.display = isDeanOrAdmin ? 'inline-block' : 'none';
 
-      // Clear edit rounds
-      editRoundCounter = 0;
-      document.getElementById('edit-rounds-container').innerHTML = `
-        <div id="no-edits-notice" class="text-center py-2 text-slate-400 text-[11px]">
-          ยังไม่มีรายการส่งกลับแก้ไข (กด "+ เพิ่มข้อมูลแก้ไข" เมื่อต้องการให้ผู้ตรวจสอบแก้ไข)
-        </div>
-      `;
+      if (defaultDeptName) {
+        deptSel.value = defaultDeptName;
+        onDepartmentSelectChange(defaultPeriod);
+      } else if (sheetData.departments.length > 0) {
+        deptSel.selectedIndex = 1;
+        onDepartmentSelectChange(defaultPeriod);
+      }
 
       modal.classList.remove('hidden');
       initFlatpickr();
@@ -2831,6 +2838,16 @@
       loadExistingTrackingForDept(dept.name, periodSel.value);
     }
 
+    function onModalPeriodChange() {
+      const deptName = document.getElementById('modal-fin-dept').value;
+      const period = document.getElementById('modal-fin-period').value;
+      if (deptName && period) {
+        loadExistingTrackingForDept(deptName, period);
+      } else {
+        calculateAutoStatus();
+      }
+    }
+
     function loadExistingTrackingForDept(deptName, period) {
       const fy = document.getElementById('modal-fin-year').value;
       const found = sheetData.trackingList.find(t => 
@@ -2849,6 +2866,17 @@
         }
       };
 
+      // Reset edit rounds container every time dept/period changes
+      editRoundCounter = 0;
+      const editContainer = document.getElementById('edit-rounds-container');
+      if (editContainer) {
+        editContainer.innerHTML = `
+          <div id="no-edits-notice" class="text-center py-2 text-slate-400 text-[11px]">
+            ยังไม่มีรายการส่งกลับแก้ไข (กด "+ เพิ่มข้อมูลแก้ไข" เมื่อต้องการให้ผู้ตรวจสอบแก้ไข)
+          </div>
+        `;
+      }
+
       if (found) {
         setDateInp('modal-fin-dept-send', found.dateReceivedFromDept);
         setDateInp('modal-fin-aud-recv', found.dateAuditorReceived);
@@ -2857,8 +2885,9 @@
         setDateInp('modal-fin-submit-president', found.dateSubmittedToPresident);
         setDateInp('modal-fin-dean-approve', found.dateDeanApproved);
 
-        // Load existing edit rounds if any
-        const edits = sheetData.editList.filter(e => e.trackingId === found.trackingId);
+        // Load existing edit rounds strictly matching this found.trackingId
+        const foundTid = (found.trackingId || '').toString().trim();
+        const edits = foundTid ? sheetData.editList.filter(e => (e.trackingId || '').toString().trim() === foundTid) : [];
         if (edits.length > 0) {
           const container = document.getElementById('edit-rounds-container');
           container.innerHTML = '';
@@ -3075,13 +3104,13 @@
         (t.fiscalYear || '').toString() === fy.toString() && 
         t.period === period
       );
-      const trackingId = (existing && existing.trackingId) ? existing.trackingId : `FR-${fy}-${deptName}`;
+      let trackingId = (existing && existing.trackingId) ? existing.trackingId : `TEMP-${fy}-${deptName}-${period}`;
 
       const trackingPayload = {
         action: 'saveTracking',
         email: currentUser ? currentUser.email : '',
         trackingData: {
-          trackingId: trackingId,
+          trackingId: (existing && existing.trackingId) ? existing.trackingId : '',
           cycle: cycle,
           period: period,
           fiscalYear: fy,
@@ -3099,7 +3128,10 @@
 
       try {
         // 1. Save Tracking Row via sendToAppsScript
-        await sendToAppsScript(trackingPayload);
+        const saveTrackRes = await sendToAppsScript(trackingPayload);
+        if (saveTrackRes && typeof saveTrackRes === 'object' && saveTrackRes.trackingId) {
+          trackingId = saveTrackRes.trackingId;
+        }
 
         // Update local tracking in memory immediately
         const existingTrackIdx = sheetData.trackingList.findIndex(t => 
@@ -3142,7 +3174,7 @@
               action: 'saveEditRound',
               email: currentUser ? currentUser.email : '',
               editData: {
-                trackingId: trackingId,
+                trackingId: trackingId.startsWith('TEMP-') ? '' : trackingId,
                 department: deptName,
                 fiscalYear: fy,
                 period: period,
@@ -3152,10 +3184,14 @@
                 note: editNote
               }
             };
-            await sendToAppsScript(editPayload);
-            const existingEditIdx = sheetData.editList.findIndex(item => item.trackingId === trackingId && parseInt(item.round, 10) === r);
+            const saveEditRes = await sendToAppsScript(editPayload);
+            if (saveEditRes && typeof saveEditRes === 'object' && saveEditRes.trackingId) {
+              trackingId = saveEditRes.trackingId;
+              newTrackObj.trackingId = trackingId;
+            }
+            const existingEditIdx = sheetData.editList.findIndex(item => (item.trackingId || '').toString().trim() === trackingId && parseInt(item.round, 10) === r);
             const newEditItem = {
-              editId: `ED-${r}`,
+              editId: (saveEditRes && saveEditRes.editId) ? saveEditRes.editId : `ED-${r}`,
               trackingId: trackingId,
               round: r,
               dateReturned: retFmt,
@@ -3171,12 +3207,14 @@
           }
         }
 
-        alert(`บันทึกข้อมูลงานตรวจสอบส่วนงาน "${deptName}" เรียบร้อยแล้ว!`);
+        alert(`บันทึกข้อมูลงานตรวจสอบส่วนงาน "${deptName}" (${period}) เรียบร้อยแล้ว!`);
         closeFinanceModal();
         renderFinanceMatrix();
         renderHomeFinanceCard();
         renderRecentFinanceTable();
         calculateSummaryKPIs();
+        // ซิงค์ข้อมูลจาก Google Sheet อีกรอบเพื่อให้ได้รหัสงาน FR-XXXX-XXX จริงตรงกัน
+        setTimeout(() => syncAllSheetData(false), 1800);
       } catch (err) {
         console.error("Save finance error:", err);
         alert('บันทึกข้อมูลเรียบร้อยแล้ว (อัปเดตหน้าจอ)');
@@ -3191,27 +3229,30 @@
     // KPI CONFIGURATION & WARNING 20 DAYS
     // -------------------------------------------------------------
     function updateKpiDisplay() {
-      const kpiDays = sheetData.configs.KPI_DAYS || 20;
-      const alertDays = Math.max(1, kpiDays - 2);
+      const kpiDays = parseInt(sheetData.configs.KPI_DAYS, 10) || 20;
+      const alertDays = parseInt(sheetData.configs.ALERT_DAYS, 10) || Math.max(1, kpiDays - 2);
 
       const kpiSettingEl = document.getElementById('kpi-setting-display');
       const kpiAlertThresh = document.getElementById('kpi-alert-threshold-days');
       const kpiAlertSub = document.getElementById('kpi-alert-sub-days');
       const kpiStat = document.getElementById('kpi-stat-days');
       const inputDays = document.getElementById('input-kpi-days');
+      const inputAlertDays = document.getElementById('input-alert-days');
 
       if (kpiSettingEl) kpiSettingEl.textContent = kpiDays;
       if (kpiAlertThresh) kpiAlertThresh.textContent = alertDays;
       if (kpiAlertSub) kpiAlertSub.textContent = alertDays;
       if (kpiStat) kpiStat.textContent = kpiDays;
       if (inputDays) inputDays.value = kpiDays;
+      if (inputAlertDays) inputAlertDays.value = alertDays;
     }
 
     function openConfigModal() {
-      if (currentUser && currentUser.role !== 'admin' && currentUser.role !== 'dean') {
-        alert('เฉพาะผู้ดูแลระบบ (Admin) หรือ ผอ. เท่านั้นที่สามารถตั้งค่าเกณฑ์ KPI ได้');
+      if (!currentUser || (currentUser.role || '').toLowerCase() !== 'admin') {
+        alert('เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถตั้งค่าเกณฑ์ KPI และระยะเวลาแจ้งเตือนได้');
         return;
       }
+      updateKpiDisplay();
       document.getElementById('config-modal').classList.remove('hidden');
     }
     function closeConfigModal() {
@@ -3219,30 +3260,30 @@
     }
 
     async function saveKpiConfig() {
-      const val = parseInt(document.getElementById('input-kpi-days').value, 10);
-      if (!val || val < 1) return alert('กรุณากรอกจำนวนวันให้ถูกต้อง');
+      if (!currentUser || (currentUser.role || '').toLowerCase() !== 'admin') {
+        alert('เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถบันทึกการตั้งค่านี้ได้');
+        return;
+      }
+      const valKpi = parseInt(document.getElementById('input-kpi-days').value, 10);
+      const valAlert = parseInt(document.getElementById('input-alert-days').value, 10);
+      if (!valKpi || valKpi < 1) return alert('กรุณากรอกจำนวนวันเกณฑ์มาตรฐานให้ถูกต้อง');
+      if (!valAlert || valAlert < 1) return alert('กรุณากรอกระยะเวลาแจ้งเตือนให้ถูกต้อง');
 
-      sheetData.configs.KPI_DAYS = val;
+      sheetData.configs.KPI_DAYS = valKpi;
+      sheetData.configs.ALERT_DAYS = valAlert;
       updateKpiDisplay();
       calculateSummaryKPIs();
       closeConfigModal();
 
-      // Send to sheet Config via Apps Script
       try {
-        await fetch(APPS_SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'updateConfig',
-            email: currentUser ? currentUser.email : '',
-            key: 'KPI_DAYS',
-            value: val
-          })
+        await sendToAppsScript({
+          action: 'updateConfigs',
+          email: currentUser.email || '',
+          configs: { KPI_DAYS: valKpi, ALERT_DAYS: valAlert }
         });
-        alert(`ปรับปรุงเกณฑ์ KPI เป็น ${val} วัน และบันทึกลงชีท Config เรียบร้อยแล้ว`);
+        alert(`ปรับปรุงเกณฑ์มาตรฐาน ${valKpi} วัน และแจ้งเตือนที่ ${valAlert} วัน ลงชีท Config เรียบร้อยแล้ว`);
       } catch (e) {
-        alert(`ปรับปรุงเกณฑ์ KPI เป็น ${val} วัน เรียบร้อยแล้ว`);
+        alert(`ปรับปรุงเกณฑ์มาตรฐาน ${valKpi} วัน และแจ้งเตือนที่ ${valAlert} วัน เรียบร้อยแล้ว`);
       }
     }
 
@@ -3254,7 +3295,8 @@
     };
 
     function computeEditStatsForTracking(trackingId) {
-      const edits = (sheetData.editList || []).filter(e => e.trackingId === trackingId);
+      const tid = (trackingId || '').toString().trim();
+      const edits = tid ? (sheetData.editList || []).filter(e => (e.trackingId || '').toString().trim() === tid) : [];
       let totalDays = 0;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -3282,8 +3324,8 @@
       const filterAuditor = document.getElementById('fin-filter-auditor') ? document.getElementById('fin-filter-auditor').value : 'all';
       const filterDept = document.getElementById('fin-filter-dept') ? document.getElementById('fin-filter-dept').value : 'all';
 
-      const kpiStandardDays = sheetData.configs.KPI_DAYS || 20;
-      const alertThreshold = Math.max(1, kpiStandardDays - 2);
+      const kpiStandardDays = parseInt(sheetData.configs.KPI_DAYS, 10) || 20;
+      const alertThreshold = parseInt(sheetData.configs.ALERT_DAYS, 10) || Math.max(1, kpiStandardDays - 2);
 
       // Filter tracks matching active filters on Finance page
       const filteredTracks = tracks.filter(t => {
@@ -3404,7 +3446,8 @@
         title = 'รายชื่อส่วนงาน / งบการเงิน: อยู่ระหว่างแก้ไข (สถานะ 4)';
       } else if (type === 'แจ้งเตือนเกินกำหนด') {
         list = kpiModalData.alertList;
-        title = 'รายชื่อส่วนงาน / งบการเงิน: แจ้งเตือนครบกำหนด (>= 18 วัน)';
+        const alertDays = parseInt(sheetData.configs.ALERT_DAYS, 10) || Math.max(1, (parseInt(sheetData.configs.KPI_DAYS, 10) || 20) - 2);
+        title = `รายชื่อส่วนงาน / งบการเงิน: แจ้งเตือนครบกำหนด (>= ${alertDays} วัน)`;
       }
 
       titleEl.innerHTML = `<span>📋</span> ${title}`;

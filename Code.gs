@@ -93,6 +93,9 @@ function doPost(e) {
     if (typeof payload.editData === 'string') {
       try { payload.editData = JSON.parse(payload.editData); } catch (e) {}
     }
+    if (typeof payload.configs === 'string') {
+      try { payload.configs = JSON.parse(payload.configs); } catch (e) {}
+    }
     
     const action = payload.action;
     const result = handleApiRequest(action, payload);
@@ -139,7 +142,9 @@ function handleApiRequest(action, data) {
     case 'changeAuditor':
       return changeDepartmentAuditor(data.deptCode, data.newAuditor, data.startDate, data.email);
     case 'updateConfig':
-      return updateConfig(data.key, data.value, data.email);
+      return updateConfig(data.key, data.value, data.email, data.description);
+    case 'updateConfigs':
+      return updateConfigs(data.configs, data.email);
     case 'saveOfficeAttendance':
       return saveOfficeAttendance(data.officeData, data.email);
     case 'getOfficeAttendance':
@@ -1010,7 +1015,7 @@ function changeDepartmentAuditor(deptCode, newAuditor, startDate, email) {
 /**
  * อัปเดตค่า Config (Admin เท่านั้น)
  */
-function updateConfig(key, value, email) {
+function updateConfig(key, value, email, description) {
   const profile = assertPermission(email, ['Admin']);
   const ss = getSpreadsheet();
   const sheet = ss.getSheetByName(SHEETS.CONFIG);
@@ -1027,7 +1032,7 @@ function updateConfig(key, value, email) {
       if (data[i][0] && data[i][0].toString().trim() === key.trim()) {
         const oldVal = data[i][1];
         sheet.getRange(i + 1, 2).setValue(value);
-        sheet.getRange(i + 1, 4).setValue(new Date() + ' โดย ' + profile.name);
+        sheet.getRange(i + 1, 4).setValue(Utilities.formatDate(new Date(), 'Asia/Bangkok', 'dd/MM/yyyy HH:mm') + ' โดย ' + profile.name);
 
         logAction(
           profile.email,
@@ -1044,7 +1049,8 @@ function updateConfig(key, value, email) {
     }
 
     if (!updated) {
-      sheet.appendRow([key, value, 'การตั้งค่าระบบ', new Date() + ' โดย ' + profile.name]);
+      const descText = description || (key === 'ALERT_DAYS' ? 'จำนวนวันแจ้งเตือนก่อนครบกำหนด' : 'การตั้งค่าระบบ');
+      sheet.appendRow([key, value, descText, Utilities.formatDate(new Date(), 'Asia/Bangkok', 'dd/MM/yyyy HH:mm') + ' โดย ' + profile.name]);
       logAction(profile.email, 'เพิ่มการตั้งค่าระบบ', key, '-', value.toString(), 'สร้าง Key ใหม่');
     }
 
@@ -1052,6 +1058,23 @@ function updateConfig(key, value, email) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/**
+ * อัปเดตค่า Config หลายรายการพร้อมกัน (Admin เท่านั้น)
+ */
+function updateConfigs(configs, email) {
+  const profile = assertPermission(email, ['Admin']);
+  if (!configs || typeof configs !== 'object') throw new Error('ไม่พบข้อมูล Config');
+
+  const results = [];
+  if (configs.KPI_DAYS !== undefined) {
+    results.push(updateConfig('KPI_DAYS', configs.KPI_DAYS, profile.email, 'เกณฑ์มาตรฐานระยะเวลาตรวจงบการเงิน (วัน)'));
+  }
+  if (configs.ALERT_DAYS !== undefined) {
+    results.push(updateConfig('ALERT_DAYS', configs.ALERT_DAYS, profile.email, 'ระยะเวลาแจ้งเตือนเมื่อยังไม่เสนอ ผอ. (วัน)'));
+  }
+  return { success: true, updated: results };
 }
 
 /**
