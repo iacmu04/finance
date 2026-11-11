@@ -1714,12 +1714,14 @@
         });
 
         // 2. ผู้ตรวจสอบ
-        // Cols: A:รหัส, B:ชื่อ-สกุล, C:ชื่อเล่น, D:ตำแหน่ง, E:กลุ่มงาน, F:Role, G:e-mail, H:สถานะ
+        // Cols: A:รหัสบุคลากร, B:ชื่อ-สกุล, C:ชื่อเล่น, D:ตำแหน่ง, E:กลุ่มงาน, F:Role, G:e-mail, H:สถานะ
         const auditors = [];
         audRows.forEach(r => {
-          if (r[0] && r[0] !== 'รหัส') {
+          const code = (r[0] || '').toString().trim();
+          const status = (r[7] || '').toString().trim().toLowerCase();
+          if (code && code !== 'รหัส' && code !== 'รหัสบุคลากร' && !code.includes('รหัส') && status !== 'inactive') {
             auditors.push({
-              code: r[0],
+              code: code,
               name: r[1],
               nickname: r[2],
               position: r[3],
