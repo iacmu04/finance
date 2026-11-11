@@ -1293,19 +1293,22 @@
     }
 
     function initFlatpickr() {
-      if (typeof flatpickr !== 'undefined') {
-        flatpickr('.datepicker', {
+      if (typeof flatpickr === 'undefined') return;
+      document.querySelectorAll('.datepicker').forEach(el => {
+        if (el._flatpickr) return;
+        flatpickr(el, {
           dateFormat: "d/m/Y",
           locale: "th",
           allowInput: true,
           disableMobile: true,
-          formatDate: function(date, format, locale) {
+          formatDate: function(date) {
             const d = ('0' + date.getDate()).slice(-2);
             const m = ('0' + (date.getMonth() + 1)).slice(-2);
-            const y = date.getFullYear() + 543;
+            const rawY = date.getFullYear();
+            const y = rawY > 2400 ? (rawY > 3000 ? rawY - 543 : rawY) : rawY + 543;
             return `${d}/${m}/${y}`;
           },
-          parseDate: function(datestr, format) {
+          parseDate: function(datestr) {
             if (!datestr) return null;
             const parsed = parseDateComponents(datestr);
             if (parsed) {
@@ -1314,37 +1317,84 @@
             return new Date(datestr);
           },
           onReady: function(selectedDates, dateStr, instance) {
+            const yearInp = instance.calendarContainer ? instance.calendarContainer.querySelector('.cur-year') : null;
+            if (yearInp && !yearInp.dataset.beBound) {
+              yearInp.dataset.beBound = '1';
+              yearInp.addEventListener('input', () => {
+                const v = parseInt(yearInp.value, 10);
+                if (!isNaN(v) && v > 2400) {
+                  instance.currentYear = v - 543;
+                }
+              });
+            }
             syncFlatpickrYearBE(instance);
           },
           onMonthChange: function(selectedDates, dateStr, instance) {
             syncFlatpickrYearBE(instance);
           },
           onYearChange: function(selectedDates, dateStr, instance) {
+            if (instance.currentYear > 2400) {
+              instance.currentYear = instance.currentYear > 3000 ? instance.currentYear - 1086 : instance.currentYear - 543;
+            }
             syncFlatpickrYearBE(instance);
           },
           onOpen: function(selectedDates, dateStr, instance) {
             syncFlatpickrYearBE(instance);
+          },
+          onChange: function() {
+            if (el.id && el.id.startsWith('modal-fin-')) {
+              calculateAutoStatus();
+            } else if (el.id && el.id.startsWith('edit-date-')) {
+              const m = el.id.match(/(\d+)$/);
+              if (m) calcEditDays(parseInt(m[1], 10));
+            }
           }
         });
-      }
+      });
     }
 
     function syncFlatpickrYearBE(instance) {
       if (!instance || !instance.calendarContainer) return;
+      if (instance.currentYear > 2400) {
+        instance.currentYear = instance.currentYear > 3000 ? instance.currentYear - 1086 : instance.currentYear - 543;
+      }
       const yearInp = instance.calendarContainer.querySelector('.cur-year');
-      if (yearInp && instance.currentYear < 2400) {
+      if (yearInp) {
         yearInp.value = instance.currentYear + 543;
       }
+    }
+
+    function normalizeYearPair(y) {
+      let yBE, yCE;
+      if (y > 3000) {
+        yBE = y - 543;
+        yCE = y - 1086;
+      } else if (y >= 2400) {
+        yBE = y;
+        yCE = y - 543;
+      } else if (y >= 1950) {
+        yBE = y + 543;
+        yCE = y;
+      } else {
+        yBE = y;
+        yCE = y;
+      }
+      return { yearBE: yBE, yearCE: yCE };
     }
 
     // Helper functions for Date Parsing & Normalization
     function parseDateComponents(dateVal) {
       if (!dateVal) return null;
-      if (typeof dateVal === 'object' && dateVal.getFullYear) {
-        let y = dateVal.getFullYear();
-        let yBE = y > 2400 ? (y > 3000 ? y - 543 : y) : y + 543;
-        let yCE = y > 2400 ? (y > 3000 ? y - 1086 : y - 543) : y;
-        return { yearBE: yBE, yearCE: yCE, month: dateVal.getMonth() + 1, day: dateVal.getDate() };
+      if (typeof dateVal === 'object') {
+        if (dateVal.getFullYear) {
+          const yrs = normalizeYearPair(dateVal.getFullYear());
+          return { ...yrs, month: dateVal.getMonth() + 1, day: dateVal.getDate() };
+        }
+        if (dateVal.day && dateVal.month && (dateVal.yearBE || dateVal.yearCE)) {
+          const yrs = normalizeYearPair(parseInt(dateVal.yearBE || dateVal.yearCE, 10));
+          return { ...yrs, month: parseInt(dateVal.month, 10), day: parseInt(dateVal.day, 10) };
+        }
+        return null;
       }
       const str = dateVal.toString().trim();
       if (!str) return null;
@@ -1352,45 +1402,43 @@
       // GVIZ Date(2569,8,11) format
       const gvizMatch = str.match(/Date\((\d+),(\d+),(\d+)\)/);
       if (gvizMatch) {
-        let y = parseInt(gvizMatch[1], 10);
-        let m = parseInt(gvizMatch[2], 10) + 1;
-        let d = parseInt(gvizMatch[3], 10);
-        let yBE = y > 2400 ? (y > 3000 ? y - 543 : y) : y + 543;
-        let yCE = y > 2400 ? (y > 3000 ? y - 1086 : y - 543) : y;
-        return { yearBE: yBE, yearCE: yCE, month: m, day: d };
+        const y = parseInt(gvizMatch[1], 10);
+        const m = parseInt(gvizMatch[2], 10) + 1;
+        const d = parseInt(gvizMatch[3], 10);
+        return { ...normalizeYearPair(y), month: m, day: d };
       }
 
       // YYYY-MM-DD
       if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(str)) {
         const parts = str.split('-');
-        let y = parseInt(parts[0], 10);
-        let m = parseInt(parts[1], 10);
-        let d = parseInt(parts[2], 10);
-        let yBE = y > 2400 ? (y > 3000 ? y - 543 : y) : y + 543;
-        let yCE = y > 2400 ? (y > 3000 ? y - 1086 : y - 543) : y;
-        return { yearBE: yBE, yearCE: yCE, month: m, day: d };
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        const d = parseInt(parts[2], 10);
+        return { ...normalizeYearPair(y), month: m, day: d };
       }
 
       // DD/MM/YYYY or DD-MM-YYYY
       const slashParts = str.split(/[\/\-]/);
       if (slashParts.length === 3) {
         if (slashParts[0].length === 4) { // YYYY/MM/DD
-          let y = parseInt(slashParts[0], 10);
-          let m = parseInt(slashParts[1], 10);
-          let d = parseInt(slashParts[2], 10);
-          let yBE = y > 2400 ? (y > 3000 ? y - 543 : y) : y + 543;
-          let yCE = y > 2400 ? (y > 3000 ? y - 1086 : y - 543) : y;
-          return { yearBE: yBE, yearCE: yCE, month: m, day: d };
+          const y = parseInt(slashParts[0], 10);
+          const m = parseInt(slashParts[1], 10);
+          const d = parseInt(slashParts[2], 10);
+          return { ...normalizeYearPair(y), month: m, day: d };
         } else { // DD/MM/YYYY
-          let p1 = parseInt(slashParts[0], 10);
-          let p2 = parseInt(slashParts[1], 10);
-          let y = parseInt(slashParts[2], 10);
-          let yBE = y > 2400 ? (y > 3000 ? y - 543 : y) : y + 543;
-          let yCE = y > 2400 ? (y > 3000 ? y - 1086 : y - 543) : y;
-          return { yearBE: yBE, yearCE: yCE, month: p2, day: p1 };
+          const p1 = parseInt(slashParts[0], 10);
+          const p2 = parseInt(slashParts[1], 10);
+          const y = parseInt(slashParts[2], 10);
+          return { ...normalizeYearPair(y), month: p2, day: p1 };
         }
       }
       return null;
+    }
+
+    function parseDateSafe(val) {
+      const c = parseDateComponents(val);
+      if (!c || c.yearCE < 1950) return null;
+      return new Date(c.yearCE, c.month - 1, c.day);
     }
 
     function isSameDay(d1, d2) {
@@ -1558,7 +1606,16 @@
       if (!match) throw new Error(`ไม่สามารถอ่านชีท ${sheetName}`);
       const data = JSON.parse(match[1]);
       const rows = data.table.rows || [];
-      return rows.map(r => (r.c || []).map(cell => cell ? (cell.f !== undefined && cell.f !== null ? cell.f : (cell.v !== undefined && cell.v !== null ? cell.v : '')) : ''));
+      return rows.map(r => (r.c || []).map(cell => {
+        if (!cell) return '';
+        if (typeof cell.v === 'string' && cell.v.startsWith('Date(')) {
+          if (typeof cell.f === 'string' && /^\d{1,2}\/\d{1,2}\/25\d{2}$/.test(cell.f.trim())) {
+            return cell.f.trim();
+          }
+          return cell.v;
+        }
+        return cell.f !== undefined && cell.f !== null ? cell.f : (cell.v !== undefined && cell.v !== null ? cell.v : '');
+      }));
     }
 
     async function syncAllSheetData(userInitiated = false) {
@@ -2211,17 +2268,21 @@
       const dateInp = document.getElementById('modal-att-date');
       const pSel = document.getElementById('modal-att-person');
 
-      if (dateInp && !dateInp.value) {
+      initFlatpickr();
+      if (dateInp && selectedCalendarDate) {
         const todayD = ('0' + selectedCalendarDate.day).slice(-2);
         const todayM = ('0' + selectedCalendarDate.month).slice(-2);
-        dateInp.value = `${todayD}/${todayM}/${selectedCalendarDate.yearBE}`;
+        const dateStr = `${todayD}/${todayM}/${selectedCalendarDate.yearBE}`;
+        dateInp.value = dateStr;
+        if (dateInp._flatpickr) {
+          dateInp._flatpickr.setDate(dateStr, false);
+        }
       }
       if (currentUser && pSel) {
         pSel.value = currentUser.code;
-        updateAttPersonCode();
       }
+      updateAttPersonCode();
       if (modal) modal.classList.remove('hidden');
-      initFlatpickr();
     }
 
     function closeAttendanceModal() {
@@ -2231,6 +2292,7 @@
 
     function updateAttPersonCode() {
       const pSel = document.getElementById('modal-att-person');
+      const dateInp = document.getElementById('modal-att-date');
       const codeLabel = document.getElementById('modal-att-emp-code');
       const emailLabel = document.getElementById('modal-att-emp-email');
       if (!pSel) return;
@@ -2240,15 +2302,30 @@
         if (codeLabel) codeLabel.textContent = person.code;
         if (emailLabel) emailLabel.textContent = person.email || '-';
       }
+
+      // Pre-fill existing AM/PM selection for the chosen person & date
+      const targetDate = dateInp ? dateInp.value : selectedCalendarDate;
+      const recs = sheetData.officeList.filter(o =>
+        (o.userCode === code || (person && (o.userCode === person.nickname || o.userCode === person.name))) &&
+        isSameDay(o.date, targetDate)
+      );
+      const amRec = recs.find(r => r.session === 'เช้า');
+      const pmRec = recs.find(r => r.session === 'บ่าย');
+      const amVal = amRec ? amRec.workType : 'เข้า Office';
+      const pmVal = pmRec ? pmRec.workType : 'เข้า Office';
+      const amRadio = document.querySelector(`input[name="att_work_am"][value="${amVal}"]`);
+      const pmRadio = document.querySelector(`input[name="att_work_pm"][value="${pmVal}"]`);
+      if (amRadio) amRadio.checked = true;
+      if (pmRadio) pmRadio.checked = true;
     }
+
+    let gasIframeCounter = 0;
 
     /**
      * ส่งคำสั่งบันทึกข้อมูลไปยัง Google Apps Script Web App
-     * รองรับทั้ง fetch แบบ text/plain (เลี่ยง CORS Preflight) และ Hidden Form POST (ประกันการบันทึก 100%)
+     * รองรับทั้ง fetch แบบ text/plain (เลี่ยง CORS Preflight) และ Unique Hidden Form POST (ไม่ชนกันเมื่อส่งหลายคำสั่ง)
      */
     async function sendToAppsScript(payload) {
-      let isSuccess = false;
-
       // วิธีที่ 1: ส่งผ่าน Fetch REST API (text/plain)
       try {
         const response = await fetch(APPS_SCRIPT_URL, {
@@ -2257,54 +2334,71 @@
           body: JSON.stringify(payload),
           redirect: 'follow'
         });
-        if (response.ok || response.status === 200) {
-          isSuccess = true;
+        const contentType = response.headers.get('content-type') || '';
+        const text = await response.text();
+        if (response.ok && (contentType.includes('application/json') || text.trim().startsWith('{'))) {
+          const parsed = JSON.parse(text);
+          if (parsed && parsed.success === false && parsed.error) {
+            throw new Error(parsed.error);
+          }
+          return parsed || true;
         }
       } catch (err) {
-        console.warn('Fetch POST note (trying iframe fallback):', err);
+        console.warn('Fetch POST fallback to hidden iframe:', err);
       }
 
-      // วิธีที่ 2: สำรองผ่าน Hidden Form POST (ไม่ติด CORS ของเบราว์เซอร์อย่างแน่นอน)
-      try {
-        let iframe = document.getElementById('gas_hidden_iframe');
-        if (!iframe) {
-          iframe = document.createElement('iframe');
-          iframe.id = 'gas_hidden_iframe';
-          iframe.name = 'gas_hidden_iframe';
+      // วิธีที่ 2: สำรองผ่าน Hidden Form POST (ใช้ iframe แยกเฉพาะรายการ เพื่อไม่ให้ request ซ้อนกันแล้วยกเลิกกันเอง)
+      return new Promise((resolve) => {
+        try {
+          gasIframeCounter++;
+          const frameName = `gas_hidden_iframe_${Date.now()}_${gasIframeCounter}`;
+          const iframe = document.createElement('iframe');
+          iframe.id = frameName;
+          iframe.name = frameName;
           iframe.style.display = 'none';
+
+          let settled = false;
+          const finish = () => {
+            if (settled) return;
+            settled = true;
+            setTimeout(() => {
+              form.remove();
+              iframe.remove();
+            }, 4000);
+            resolve(true);
+          };
+
+          iframe.onload = finish;
+          setTimeout(finish, 2500);
           document.body.appendChild(iframe);
+
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = APPS_SCRIPT_URL;
+          form.target = frameName;
+          form.style.display = 'none';
+
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'postData';
+          input.value = JSON.stringify(payload);
+          form.appendChild(input);
+
+          for (const [k, v] of Object.entries(payload)) {
+            const inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = k;
+            inp.value = typeof v === 'object' ? JSON.stringify(v) : v;
+            form.appendChild(inp);
+          }
+
+          document.body.appendChild(form);
+          form.submit();
+        } catch (fErr) {
+          console.error('Form POST error:', fErr);
+          resolve(false);
         }
-
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = APPS_SCRIPT_URL;
-        form.target = 'gas_hidden_iframe';
-        form.style.display = 'none';
-
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'postData';
-        input.value = JSON.stringify(payload);
-        form.appendChild(input);
-
-        // แยก parameters ส่งควบคู่
-        for (const [k, v] of Object.entries(payload)) {
-          const inp = document.createElement('input');
-          inp.type = 'hidden';
-          inp.name = k;
-          inp.value = typeof v === 'object' ? JSON.stringify(v) : v;
-          form.appendChild(inp);
-        }
-
-        document.body.appendChild(form);
-        form.submit();
-        setTimeout(() => { form.remove(); }, 1200);
-        isSuccess = true;
-      } catch (fErr) {
-        console.error('Form POST error:', fErr);
-      }
-
-      return isSuccess;
+      });
     }
 
     async function saveAttendanceRecord(e) {
@@ -2316,7 +2410,7 @@
       const btn = document.getElementById('btn-save-attendance');
 
       const userCode = pSel.value;
-      const dateVal = dateInp.value;
+      const dateVal = formatInputDate(dateInp.value);
 
       if (!userCode || !dateVal) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
 
@@ -2324,26 +2418,25 @@
       btn.textContent = 'กำลังบันทึกลงชีท Office...';
 
       try {
-        const payloadAm = {
+        const combinedPayload = {
           action: 'saveOfficeAttendance',
           email: currentUser ? currentUser.email : '',
-          officeData: { userCode: userCode, date: dateVal, session: 'เช้า', workType: workAm }
-        };
-        const payloadPm = {
-          action: 'saveOfficeAttendance',
-          email: currentUser ? currentUser.email : '',
-          officeData: { userCode: userCode, date: dateVal, session: 'บ่าย', workType: workPm }
+          officeData: {
+            userCode: userCode,
+            date: dateVal,
+            workAm: workAm,
+            workPm: workPm
+          }
         };
 
         // Update local memory list immediately
         updateLocalOfficeMemory(userCode, dateVal, 'เช้า', workAm);
         updateLocalOfficeMemory(userCode, dateVal, 'บ่าย', workPm);
 
-        // Send both sessions to Google Apps Script
-        await sendToAppsScript(payloadAm);
-        await sendToAppsScript(payloadPm);
+        // ส่งบันทึกภาคเช้าและภาคบ่ายพร้อมกันใน 1 คำสั่ง ป้องกันข้อมูลหาย
+        await sendToAppsScript(combinedPayload);
 
-        alert(`บันทึกข้อมูลการปฏิบัติงานของรหัส "${userCode}" ลงในชีท Office เรียบร้อยแล้ว!`);
+        alert(`บันทึกข้อมูลการปฏิบัติงานของรหัส "${userCode}" วันที่ ${dateVal} ลงในชีท Office เรียบร้อยแล้ว!`);
         renderAttendanceList();
         renderCalendar();
         renderTodaySummaryCard();
@@ -2962,27 +3055,39 @@
           const noteInp = document.getElementById(`edit-note-${r}`);
 
           if (retInp && retInp.value) {
+            const retFmt = formatInputDate(retInp.value);
+            const resFmt = formatInputDate(resInp ? resInp.value : '');
+            const editNote = noteInp ? noteInp.value : '';
             const editPayload = {
               action: 'saveEditRound',
               email: currentUser ? currentUser.email : '',
               editData: {
                 trackingId: trackingId,
+                department: deptName,
+                fiscalYear: fy,
+                period: period,
                 round: r,
-                dateReturned: formatInputDate(retInp.value),
-                dateResubmitted: formatInputDate(resInp ? resInp.value : ''),
-                note: noteInp ? noteInp.value : ''
+                dateReturned: retFmt,
+                dateResubmitted: resFmt,
+                note: editNote
               }
             };
             await sendToAppsScript(editPayload);
-            sheetData.editList.push({
+            const existingEditIdx = sheetData.editList.findIndex(item => item.trackingId === trackingId && parseInt(item.round, 10) === r);
+            const newEditItem = {
               editId: `ED-${r}`,
               trackingId: trackingId,
               round: r,
-              dateReturned: formatInputDate(retInp.value),
-              dateResubmitted: formatInputDate(resInp ? resInp.value : ''),
-              note: noteInp ? noteInp.value : '',
-              status: resInp && resInp.value ? 'ส่งคืนแล้ว' : 'รอแก้ไข'
-            });
+              dateReturned: retFmt,
+              dateResubmitted: resFmt,
+              note: editNote,
+              status: resFmt ? 'ส่งคืนแล้ว' : 'รอแก้ไข'
+            };
+            if (existingEditIdx !== -1) {
+              sheetData.editList[existingEditIdx] = { ...sheetData.editList[existingEditIdx], ...newEditItem };
+            } else {
+              sheetData.editList.push(newEditItem);
+            }
           }
         }
 

@@ -78,6 +78,12 @@ function doPost(e) {
     }
 
     // ถอดรหัสกรณีส่งแบบ Form Parameter
+    if (typeof payload.postData === 'string') {
+      try {
+        const parsedPost = JSON.parse(payload.postData);
+        if (parsedPost && typeof parsedPost === 'object') payload = parsedPost;
+      } catch (e) {}
+    }
     if (typeof payload.trackingData === 'string') {
       try { payload.trackingData = JSON.parse(payload.trackingData); } catch (e) {}
     }
@@ -542,6 +548,9 @@ function saveTracking(item, email) {
       }
     }
 
+    // ปรับคอลัมน์วันที่ (G-L) ให้เป็น Plain Text (@) ป้องกัน Google Sheets สลับวัน/เดือนหรือเปลี่ยนปี พ.ศ.
+    ensurePlainTextDateColumns(sheet, [7, 8, 9, 10, 11, 12]);
+
     // สร้าง ID อัตโนมัติถ้าเป็นรายการใหม่
     const fy = item.fiscalYear || '2570';
     if (rowIndex === -1) {
@@ -564,7 +573,9 @@ function saveTracking(item, email) {
         item.periodKey || (fy + '-' + item.period)
       ];
 
-      sheet.appendRow(newRow);
+      const nextRow = sheet.getLastRow() + 1;
+      sheet.getRange(nextRow, 7, 1, 6).setNumberFormat('@');
+      sheet.getRange(nextRow, 1, 1, newRow.length).setValues([newRow]);
 
       logAction(
         profile.email,
@@ -594,6 +605,7 @@ function saveTracking(item, email) {
         item.periodKey || data[rowIndex - 1][12]
       ];
 
+      sheet.getRange(rowIndex, 7, 1, 6).setNumberFormat('@');
       sheet.getRange(rowIndex, 1, 1, rowValues.length).setValues([rowValues]);
 
       logAction(
@@ -651,19 +663,42 @@ function saveEditRound(editData, email) {
   lock.waitLock(15000);
 
   try {
+    ensurePlainTextDateColumns(sheet, [4, 5]);
     const data = sheet.getDataRange().getValues();
-    const tid = editData.trackingId;
+    let tid = (editData.trackingId || '').toString().trim();
+
+    // ตรวจสอบ trackingId กับชีท Tracking (กรณีสร้าง Tracking ใหม่และ frontend ยังไม่รู้เลข FR-XXXX-XXX)
+    if (editData.department && editData.period && editData.fiscalYear) {
+      const trackSheet = ss.getSheetByName(SHEETS.TRACKING);
+      if (trackSheet && trackSheet.getLastRow() > 1) {
+        const tData = trackSheet.getDataRange().getValues();
+        const exactMatch = tid ? tData.some((r, idx) => idx > 0 && (r[0] || '').toString().trim() === tid) : false;
+        if (!exactMatch) {
+          for (let j = 1; j < tData.length; j++) {
+            if ((tData[j][4] || '').toString().trim() === editData.department.trim() &&
+                (tData[j][2] || '').toString().trim() === editData.period.trim() &&
+                (tData[j][3] || '').toString().trim() === editData.fiscalYear.toString().trim()) {
+              tid = (tData[j][0] || '').toString().trim();
+              break;
+            }
+          }
+        }
+      }
+    }
     if (!tid) throw new Error('ไม่พบรหัสงานตรวจสอบ (trackingId)');
 
     // หาจำนวนรอบเดิมของ trackingId นี้
     let maxRound = 0;
     let editRowIndex = -1;
+    const reqRound = parseInt(editData.round, 10);
 
     for (let i = 1; i < data.length; i++) {
-      if (data[i][1] && data[i][1].toString().trim() === tid.trim()) {
+      if (data[i][1] && data[i][1].toString().trim() === tid) {
         const rnd = parseInt(data[i][2], 10);
         if (!isNaN(rnd) && rnd > maxRound) maxRound = rnd;
         if (editData.editId && data[i][0] && data[i][0].toString().trim() === editData.editId.trim()) {
+          editRowIndex = i + 1;
+        } else if (editRowIndex === -1 && !isNaN(reqRound) && rnd === reqRound) {
           editRowIndex = i + 1;
         }
       }
@@ -686,7 +721,7 @@ function saveEditRound(editData, email) {
 
     if (editRowIndex === -1) {
       // สร้างรอบใหม่
-      const nextRound = maxRound + 1;
+      const nextRound = !isNaN(reqRound) && reqRound > maxRound ? reqRound : maxRound + 1;
       const editId = 'ED-' + tid.replace('FR-', '') + '-' + ('0' + nextRound).slice(-2);
       const nowStr = new Date();
 
@@ -703,7 +738,9 @@ function saveEditRound(editData, email) {
         status
       ];
 
-      sheet.appendRow(newRow);
+      const nextRow = sheet.getLastRow() + 1;
+      sheet.getRange(nextRow, 4, 1, 2).setNumberFormat('@');
+      sheet.getRange(nextRow, 1, 1, newRow.length).setValues([newRow]);
 
       logAction(
         profile.email,
@@ -714,7 +751,7 @@ function saveEditRound(editData, email) {
         'รอบที่ ' + nextRound + ' หมายเหตุ: ' + (editData.note || '-')
       );
 
-      return { success: true, editId: editId, round: nextRound };
+      return { success: true, editId: editId, round: nextRound, trackingId: tid };
     } else {
       // อัปเดตข้อมูลรอบเดิม (เช่น ผู้ตรวจสอบบันทึกวันที่ส่งคืน)
       const oldRow = data[editRowIndex - 1];
@@ -722,7 +759,7 @@ function saveEditRound(editData, email) {
         oldRow[0],
         oldRow[1],
         oldRow[2],
-        dateReturned || oldRow[3],
+        dateReturned || normalizeDateBE(oldRow[3]),
         dateResubmitted,
         days !== '' ? days : oldRow[5],
         editData.note !== undefined ? editData.note : oldRow[6],
@@ -731,6 +768,7 @@ function saveEditRound(editData, email) {
         status
       ];
 
+      sheet.getRange(editRowIndex, 4, 1, 2).setNumberFormat('@');
       sheet.getRange(editRowIndex, 1, 1, updatedRow.length).setValues([updatedRow]);
 
       logAction(
@@ -742,7 +780,7 @@ function saveEditRound(editData, email) {
         'แก้ไขส่งคืนรอบที่ ' + oldRow[2]
       );
 
-      return { success: true, editId: oldRow[0], round: oldRow[2] };
+      return { success: true, editId: oldRow[0], round: oldRow[2], trackingId: tid };
     }
   } finally {
     lock.releaseLock();
@@ -770,7 +808,8 @@ function approveByDean(trackingId, approveDate, email) {
     for (let i = 1; i < data.length; i++) {
       if (data[i][0] && data[i][0].toString().trim() === trackingId.trim()) {
         const appDateVal = approveDate ? normalizeDateBE(approveDate) : normalizeDateBE(new Date());
-        sheet.getRange(i + 1, 12).setValue(appDateVal); // Col L
+        ensurePlainTextDateColumns(sheet, [7, 8, 9, 10, 11, 12]);
+        sheet.getRange(i + 1, 12).setNumberFormat('@').setValue(appDateVal); // Col L
 
         logAction(
           profile.email,
@@ -841,7 +880,8 @@ function completeAndSubmit(trackingId, email) {
     }
 
     const todayDate = normalizeDateBE(new Date());
-    trackSheet.getRange(rowIndex, 11).setValue(todayDate); // Col K
+    ensurePlainTextDateColumns(trackSheet, [7, 8, 9, 10, 11, 12]);
+    trackSheet.getRange(rowIndex, 11).setNumberFormat('@').setValue(todayDate); // Col K
 
     logAction(
       profile.email,
@@ -1082,6 +1122,97 @@ function getSystemLogs(limit, email) {
  * ========================================================================= */
 
 /**
+ * แปลง Date object หรือ Display String ที่เพี้ยนจาก Locale (เช่น US MM/DD/YYYY หรือปี 3112) ให้เป็นสตริง "DD/MM/YYYY" (พ.ศ.)
+ */
+function repairSingleDateCell(rawVal, displayVal) {
+  if (rawVal === null || rawVal === undefined || rawVal === '') return '';
+
+  if (rawVal instanceof Date) {
+    if (isNaN(rawVal.getTime())) return displayVal ? displayVal.toString().trim() : '';
+    let y = rawVal.getFullYear();
+    let m = rawVal.getMonth() + 1;
+    let d = rawVal.getDate();
+
+    // กรณีปีเกิน 3000 (เช่น 2569 + 543 = 3112) -> getMonth/getDate ถูกต้องอยู่แล้ว แค่ลบ 543
+    if (y > 3000) {
+      y -= 543;
+      return ('0' + d).slice(-2) + '/' + ('0' + m).slice(-2) + '/' + y;
+    }
+
+    // กรณีปี พ.ศ. (2400-3000) ที่ Google Sheets (Locale US) แปลงสตริงเป็น Date (เช่น 09/11/2569 -> Sep 11 2569)
+    if (y >= 2400 && y <= 3000 && displayVal) {
+      const disp = displayVal.toString().trim();
+      const slashMatch = disp.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (slashMatch) {
+        return ('0' + parseInt(slashMatch[1], 10)).slice(-2) + '/' +
+               ('0' + parseInt(slashMatch[2], 10)).slice(-2) + '/' +
+               slashMatch[3];
+      }
+      return ('0' + d).slice(-2) + '/' + ('0' + m).slice(-2) + '/' + y;
+    }
+
+    // กรณีปี ค.ศ. ปกติ (1950-2399) -> แปลงเป็น พ.ศ.
+    if (y >= 1950 && y < 2400) {
+      y += 543;
+      return ('0' + d).slice(-2) + '/' + ('0' + m).slice(-2) + '/' + y;
+    }
+
+    // กรณีข้อมูลทดสอบเก่ามากที่ปีเพี้ยน (< 1950 เช่น 1908) ให้คงเป็นสตริง DD/MM/YYYY
+    return ('0' + d).slice(-2) + '/' + ('0' + m).slice(-2) + '/' + y;
+  }
+
+  return normalizeDateBE(rawVal);
+}
+
+/**
+ * บังคับให้คอลัมน์วันที่ทั้งหมดเป็น Plain Text (@) และซ่อมแซมเซลล์ที่เป็น Date Object อัตโนมัติ
+ * ป้องกัน Google Sheets สลับวัน/เดือน (US Locale) หรือทำให้ GVIZ คืนค่า null เมื่อประเภทข้อมูลปนกัน
+ */
+function ensurePlainTextDateColumns(sheet, colIndices) {
+  if (!sheet || sheet.getLastRow() < 2) return 0;
+  const numRows = sheet.getLastRow() - 1;
+  let repairedCount = 0;
+
+  colIndices.forEach(function(colIdx) {
+    const range = sheet.getRange(2, colIdx, numRows, 1);
+    const values = range.getValues();
+    const displayValues = range.getDisplayValues();
+    const formats = range.getNumberFormats();
+    let needsUpdate = false;
+
+    for (let i = 0; i < values.length; i++) {
+      const rawVal = values[i][0];
+      if (formats[i][0] !== '@') needsUpdate = true;
+      if (rawVal === '' || rawVal === null || rawVal === undefined) continue;
+
+      if (rawVal instanceof Date) {
+        values[i][0] = repairSingleDateCell(rawVal, displayValues[i][0]);
+        needsUpdate = true;
+        repairedCount++;
+      } else {
+        const strVal = rawVal.toString().trim();
+        const norm = normalizeDateBE(strVal);
+        if (norm && norm !== strVal) {
+          values[i][0] = norm;
+          needsUpdate = true;
+          repairedCount++;
+        } else if (typeof rawVal !== 'string') {
+          values[i][0] = norm || strVal;
+          needsUpdate = true;
+        }
+      }
+    }
+
+    if (needsUpdate) {
+      range.setNumberFormat('@');
+      range.setValues(values);
+    }
+  });
+
+  return repairedCount;
+}
+
+/**
  * แปลง/ปรับวันที่ให้เป็นสตริง วัน/เดือน/ปี (พ.ศ.) มาตรฐาน เช่น "11/11/2569"
  * ป้องกันการแปลง พ.ศ. ซ้ำซ้อน (เช่น 2569 -> 3112) และซ่อมแซมค่าปี > 3000 อัตโนมัติ
  */
@@ -1097,7 +1228,7 @@ function normalizeDateBE(val) {
       let y = parseInt(gvizMatch[1], 10);
       let m = ('0' + (parseInt(gvizMatch[2], 10) + 1)).slice(-2);
       let d = ('0' + parseInt(gvizMatch[3], 10)).slice(-2);
-      if (y < 2400) y += 543;
+      if (y >= 1950 && y < 2400) y += 543;
       if (y > 3000) y -= 543;
       return d + '/' + m + '/' + y;
     }
@@ -1108,14 +1239,14 @@ function normalizeDateBE(val) {
         let d = ('0' + parseInt(parts[0], 10)).slice(-2);
         let m = ('0' + parseInt(parts[1], 10)).slice(-2);
         let y = parseInt(parts[2], 10);
-        if (y < 2400) y += 543;
+        if (y >= 1950 && y < 2400) y += 543;
         if (y > 3000) y -= 543;
         return d + '/' + m + '/' + y;
       } else if (parts[0].length === 4) { // YYYY/MM/DD หรือ YYYY-MM-DD
         let y = parseInt(parts[0], 10);
         let m = ('0' + parseInt(parts[1], 10)).slice(-2);
         let d = ('0' + parseInt(parts[2], 10)).slice(-2);
-        if (y < 2400) y += 543;
+        if (y >= 1950 && y < 2400) y += 543;
         if (y > 3000) y -= 543;
         return d + '/' + m + '/' + y;
       }
@@ -1129,7 +1260,7 @@ function normalizeDateBE(val) {
   const day = ('0' + d.getDate()).slice(-2);
   const month = ('0' + (d.getMonth() + 1)).slice(-2);
   let year = d.getFullYear();
-  if (year < 2400) year += 543;
+  if (year >= 1950 && year < 2400) year += 543;
   if (year > 3000) year -= 543;
 
   return day + '/' + month + '/' + year;
@@ -1140,7 +1271,13 @@ function normalizeDateBE(val) {
  */
 function parseDateObj(val) {
   if (!val) return null;
-  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+  if (val instanceof Date) {
+    if (isNaN(val.getTime())) return null;
+    let y = val.getFullYear();
+    if (y > 3000) y -= 1086;
+    else if (y > 2400) y -= 543;
+    return new Date(y, val.getMonth(), val.getDate());
+  }
   const str = val.toString().trim();
   if (!str) return null;
 
@@ -1195,6 +1332,7 @@ function parseDateInput(str) {
 /**
  * บันทึกการเข้างานลงชีท Office
  * Cols: A:รหัส, B:วัน/เดือน/ปี, C:ภาค, D:การทำงาน
+ * รองรับทั้งการส่งพร้อมกัน (workAm + workPm) และการส่งทีละภาค (session + workType)
  */
 function saveOfficeAttendance(officeData, email) {
   const profile = getUserProfile(email);
@@ -1207,38 +1345,57 @@ function saveOfficeAttendance(officeData, email) {
 
   const userCode = officeData.userCode || profile.code || profile.nickname || 'Unknown';
   const dateStr = normalizeDateBE(officeData.date) || officeData.date;
-  const session = (officeData.session || 'เช้า').trim();
-  const workType = (officeData.workType || 'เข้า Office').trim();
+
+  const entries = [];
+  if (officeData.workAm !== undefined || officeData.workPm !== undefined) {
+    if (officeData.workAm) entries.push({ session: 'เช้า', workType: officeData.workAm.trim() });
+    if (officeData.workPm) entries.push({ session: 'บ่าย', workType: officeData.workPm.trim() });
+  } else {
+    entries.push({
+      session: (officeData.session || 'เช้า').trim(),
+      workType: (officeData.workType || 'เข้า Office').trim()
+    });
+  }
 
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
 
   try {
+    // ปรับคอลัมน์ B (วัน/เดือน/ปี) ทั้งหมดให้เป็น Plain Text (@) ก่อนอ่านและบันทึก
+    ensurePlainTextDateColumns(sheet, [2]);
+
     const data = sheet.getDataRange().getValues();
-    let foundRow = -1;
 
-    for (let i = 1; i < data.length; i++) {
-      const rowCode = (data[i][0] || '').toString().trim();
-      const rowDate = normalizeDateBE(data[i][1]);
-      const rowSession = (data[i][2] || '').toString().trim();
-      if (rowCode === userCode && rowDate === dateStr && rowSession === session) {
-        foundRow = i + 1;
-        break;
+    entries.forEach(function(entry) {
+      let foundRow = -1;
+      for (let i = 1; i < data.length; i++) {
+        const rowCode = (data[i][0] || '').toString().trim();
+        const rowDate = normalizeDateBE(data[i][1]);
+        const rowSession = (data[i][2] || '').toString().trim();
+        if (rowCode === userCode && rowDate === dateStr && rowSession === entry.session) {
+          foundRow = i + 1;
+          break;
+        }
       }
-    }
 
-    if (foundRow !== -1) {
-      sheet.getRange(foundRow, 4).setValue(workType);
-    } else {
-      sheet.appendRow([userCode, dateStr, session, workType]);
-    }
+      if (foundRow !== -1) {
+        sheet.getRange(foundRow, 2).setNumberFormat('@').setValue(dateStr);
+        sheet.getRange(foundRow, 4).setValue(entry.workType);
+        data[foundRow - 1][1] = dateStr;
+        data[foundRow - 1][3] = entry.workType;
+      } else {
+        const nextRow = sheet.getLastRow() + 1;
+        sheet.getRange(nextRow, 2).setNumberFormat('@');
+        sheet.getRange(nextRow, 1, 1, 4).setValues([[userCode, dateStr, entry.session, entry.workType]]);
+        data.push([userCode, dateStr, entry.session, entry.workType]);
+      }
+    });
 
     return {
       success: true,
       userCode: userCode,
       date: dateStr,
-      session: session,
-      workType: workType
+      entries: entries
     };
   } finally {
     lock.releaseLock();
@@ -1274,26 +1431,20 @@ function getOfficeAttendance(dateStr, email) {
 }
 
 /**
- * ซ่อมแซมวันที่ที่ผิดพลาด (เช่น ปี 3112 ในชีท Office) ให้กลับเป็น พ.ศ. ที่ถูกต้อง
+ * ซ่อมแซมวันที่ที่ผิดพลาด (เช่น ปี 3112 หรือสลับวันเดือน) ในชีท Office, Tracking, Edit ทั้งหมด
  */
 function repairAllSheetDates() {
   const ss = getSpreadsheet();
-  const offSheet = ss.getSheetByName(SHEETS.OFFICE);
   let repairedCount = 0;
 
-  if (offSheet && offSheet.getLastRow() > 1) {
-    const range = offSheet.getRange(2, 2, offSheet.getLastRow() - 1, 1);
-    const values = range.getValues();
-    for (let i = 0; i < values.length; i++) {
-      const rawVal = values[i][0];
-      const normalized = normalizeDateBE(rawVal);
-      if (normalized && normalized !== rawVal) {
-        values[i][0] = normalized;
-        repairedCount++;
-      }
-    }
-    range.setValues(values);
-  }
+  const offSheet = ss.getSheetByName(SHEETS.OFFICE);
+  if (offSheet) repairedCount += ensurePlainTextDateColumns(offSheet, [2]);
+
+  const trackSheet = ss.getSheetByName(SHEETS.TRACKING);
+  if (trackSheet) repairedCount += ensurePlainTextDateColumns(trackSheet, [7, 8, 9, 10, 11, 12]);
+
+  const editSheet = ss.getSheetByName(SHEETS.EDIT);
+  if (editSheet) repairedCount += ensurePlainTextDateColumns(editSheet, [4, 5]);
 
   return { success: true, repairedCount: repairedCount };
 }
