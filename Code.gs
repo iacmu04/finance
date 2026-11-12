@@ -14,7 +14,9 @@ const SHEETS = {
   CONFIG: 'Config',
   SYSTEM_LOG: 'SystemLog',
   OFFICE: 'Office',
-  HOLIDAY: 'Holiday'
+  HOLIDAY: 'Holiday',
+  BUDGET: 'Budget',
+  EXPENSE: 'Expense'
 };
 
 /**
@@ -96,6 +98,9 @@ function doPost(e) {
     if (typeof payload.configs === 'string') {
       try { payload.configs = JSON.parse(payload.configs); } catch (e) {}
     }
+    if (typeof payload.expenseData === 'string') {
+      try { payload.expenseData = JSON.parse(payload.expenseData); } catch (e) {}
+    }
     
     const action = payload.action;
     const result = handleApiRequest(action, payload);
@@ -153,6 +158,10 @@ function handleApiRequest(action, data) {
       return getSystemLogs(data.limit, data.email);
     case 'repairAllSheetDates':
       return repairAllSheetDates();
+    case 'saveExpense':
+      return saveExpense(data.expenseData, data.email);
+    case 'deleteExpense':
+      return deleteExpense(data.expenseData, data.email);
     default:
       throw new Error('ไม่พบ Action ที่ระบุ: ' + action);
   }
@@ -1472,3 +1481,137 @@ function repairAllSheetDates() {
   return { success: true, repairedCount: repairedCount };
 }
 
+/* =========================================================================
+ * 7. ระบบจัดการค่าใช้จ่าย (ชีท Expense)
+ * ========================================================================= */
+
+/**
+ * ค้นหาแถวเป้าหมายในชีท Expense โดยตรวจสอบ rowNumber ร่วมกับข้อมูลอ้างอิงเดิม
+ */
+function findExpenseTargetRow_(sheet, expenseData) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return -1;
+
+  const rowNum = parseInt(expenseData.rowNumber, 10);
+  const orig = expenseData.original || {};
+  const origCode = (orig.code || '').toString().trim();
+  const origYear = (orig.fiscalYear || '').toString().trim();
+  const origItem = (orig.item || '').toString().trim();
+
+  if (rowNum >= 2 && rowNum <= lastRow) {
+    const rowVals = sheet.getRange(rowNum, 1, 1, 13).getValues()[0];
+    const rCode = (rowVals[0] || '').toString().trim();
+    const rYear = (rowVals[1] || '').toString().trim();
+    const rItem = (rowVals[5] || '').toString().trim();
+    if (!origCode || (rCode === origCode && (!origYear || rYear === origYear) && (!origItem || rItem === origItem))) {
+      return rowNum;
+    }
+  }
+
+  // Fallback: ค้นหาจากข้อมูลเดิมกรณีมีคนแทรก/ลบแถวก่อนหน้า
+  if (origCode) {
+    const all = sheet.getRange(2, 1, lastRow - 1, 13).getValues();
+    for (let i = 0; i < all.length; i++) {
+      const rCode = (all[i][0] || '').toString().trim();
+      const rYear = (all[i][1] || '').toString().trim();
+      const rItem = (all[i][5] || '').toString().trim();
+      if (rCode === origCode && (!origYear || rYear === origYear) && (!origItem || rItem === origItem)) {
+        return i + 2;
+      }
+    }
+  }
+  return -1;
+}
+
+/**
+ * เพิ่มหรือแก้ไขรายการค่าใช้จ่ายลงในชีท Expense
+ * Cols: A:รหัสงบประมาณ, B:ปีงบประมาณ, C:วันที่เบิกจ่าย, D:เลขที่หนังสือ, E:เลขที่ใบตั้งหนี้,
+ *       F:รายการ, G:หมวดงบ, H:หมวดย่อย, I:จำนวนเงิน, J:รายละเอียด, K:อ้างถึงหนังสือ, L:หนังสือลงวันที่, M:หมายเหตุ
+ */
+function saveExpense(expenseData, email) {
+  if (!expenseData) throw new Error('ไม่พบข้อมูลค่าใช้จ่าย (expenseData)');
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName(SHEETS.EXPENSE);
+    if (!sheet) throw new Error('ไม่พบชีท ' + SHEETS.EXPENSE);
+
+    const code = (expenseData.code || '').toString().trim();
+    const fiscalYear = parseInt(expenseData.fiscalYear, 10) || (expenseData.fiscalYear || '').toString().trim();
+    if (!code || !fiscalYear) throw new Error('กรุณาระบุรหัสงบประมาณและปีงบประมาณ');
+
+    const dateStr = expenseData.date ? normalizeDateBE(expenseData.date) : '';
+    const docDateStr = expenseData.docDate ? normalizeDateBE(expenseData.docDate) : '';
+    const amountNum = parseFloat((expenseData.amount || '0').toString().replace(/,/g, '')) || 0;
+
+    const rowValues = [
+      code,
+      fiscalYear,
+      dateStr,
+      (expenseData.docNo || '').toString().trim(),
+      (expenseData.debtNo || '').toString().trim(),
+      (expenseData.item || '').toString().trim(),
+      (expenseData.category || '').toString().trim(),
+      (expenseData.subCategory || '').toString().trim(),
+      amountNum,
+      (expenseData.detail || '').toString().trim(),
+      (expenseData.refDoc || '').toString().trim(),
+      docDateStr,
+      (expenseData.note || '').toString().trim()
+    ];
+
+    let targetRow = -1;
+    if (expenseData.mode === 'edit') {
+      targetRow = findExpenseTargetRow_(sheet, expenseData);
+      if (targetRow < 2) throw new Error('ไม่พบแถวรายการค่าใช้จ่ายที่ต้องการแก้ไขในชีท Expense');
+    } else {
+      targetRow = sheet.getLastRow() + 1;
+    }
+
+    // ตั้งค่า Plain Text สำหรับคอลัมน์รหัส เลขที่ และวันที่ เพื่อป้องกัน Sheets แปลงปี พ.ศ./ค.ศ. หรือตัดเลข 0
+    sheet.getRange(targetRow, 1).setNumberFormat('@');
+    sheet.getRange(targetRow, 3).setNumberFormat('@');
+    sheet.getRange(targetRow, 4).setNumberFormat('@');
+    sheet.getRange(targetRow, 5).setNumberFormat('@');
+    sheet.getRange(targetRow, 11).setNumberFormat('@');
+    sheet.getRange(targetRow, 12).setNumberFormat('@');
+    sheet.getRange(targetRow, 1, 1, 13).setValues([rowValues]);
+
+    return {
+      success: true,
+      mode: expenseData.mode === 'edit' ? 'edit' : 'add',
+      rowNumber: targetRow,
+      code: code
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * ลบรายการค่าใช้จ่ายจากชีท Expense
+ */
+function deleteExpense(expenseData, email) {
+  if (!expenseData) throw new Error('ไม่พบข้อมูลสำหรับลบ (expenseData)');
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName(SHEETS.EXPENSE);
+    if (!sheet) throw new Error('ไม่พบชีท ' + SHEETS.EXPENSE);
+
+    const targetRow = findExpenseTargetRow_(sheet, expenseData);
+    if (targetRow < 2) throw new Error('ไม่พบรายการค่าใช้จ่ายที่ต้องการลบในชีท Expense');
+
+    sheet.deleteRow(targetRow);
+    return {
+      success: true,
+      deletedRow: targetRow
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
