@@ -579,16 +579,20 @@
           </button>
         </div>
 
-        <!-- Card 3: งบประมาณ ประจำปี 2570 -->
+        <!-- Card 3: งบประมาณ ประจำปี -->
         <div class="bg-white rounded-2xl p-5 card-shadow border border-slate-100 flex flex-col justify-between">
           <div>
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="text-sm font-semibold text-slate-800">งบประมาณ ประจำปี 2570</h3>
-              <span class="text-xs text-slate-400 bg-slate-50 px-2 py-0.5 rounded">Jan 2025 ▾</span>
+            <div class="flex items-center justify-between gap-2 mb-3">
+              <h3 class="text-sm font-semibold text-slate-800">งบประมาณ ประจำปี <span id="home-budget-title-year">2570</span></h3>
+              <select id="home-budget-filter-year" onchange="renderHomeBudgetCard()" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] text-slate-700 font-semibold focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer">
+                <option value="2570">ปีงบ 2570</option>
+                <option value="2569">ปีงบ 2569</option>
+                <option value="2568">ปีงบ 2568</option>
+              </select>
             </div>
 
-            <div class="text-2xl font-bold text-brand-700 tracking-tight mb-4">
-              ฿24,847,060.00
+            <div id="home-budget-total" class="text-2xl font-bold text-brand-700 tracking-tight mb-4">
+              ฿0.00
             </div>
 
             <div class="space-y-4 text-xs">
@@ -600,34 +604,34 @@
 
               <!-- Row 1: งบเงินแผ่นดิน -->
               <div>
-                <div class="font-semibold text-slate-700 mb-1 flex items-center justify-between">
-                  <span>งบเงินแผ่นดิน</span>
-                  <span class="text-[10px] text-slate-400">งบบุคลากร, ค่าตอบแทน</span>
+                <div class="font-semibold text-slate-700 mb-1 flex items-center justify-between gap-2">
+                  <span class="shrink-0">งบเงินแผ่นดิน</span>
+                  <span id="home-budget-gov-cats" class="text-[10px] text-slate-400 truncate text-right">-</span>
                 </div>
                 <div class="grid grid-cols-3 gap-2 text-center font-bold">
-                  <div class="bg-brand-50 text-brand-700 py-2 rounded-lg">8,627,900</div>
-                  <div class="bg-purple-100 text-brand-800 py-2 rounded-lg">621,011</div>
-                  <div class="bg-indigo-50 text-indigo-700 py-2 rounded-lg">8,006,889</div>
+                  <div id="home-budget-gov-total" class="bg-brand-50 text-brand-700 py-2 px-1 rounded-lg">0</div>
+                  <div id="home-budget-gov-exp" class="bg-purple-100 text-brand-800 py-2 px-1 rounded-lg">0</div>
+                  <div id="home-budget-gov-rem" class="bg-indigo-50 text-indigo-700 py-2 px-1 rounded-lg">0</div>
                 </div>
               </div>
 
               <!-- Row 2: งบเงินรายได้ -->
               <div>
-                <div class="font-semibold text-slate-700 mb-1 flex items-center justify-between">
-                  <span>งบเงินรายได้</span>
-                  <span class="text-[10px] text-slate-400">ดำเนินงาน, อบรม, พัฒนา</span>
+                <div class="font-semibold text-slate-700 mb-1 flex items-center justify-between gap-2">
+                  <span class="shrink-0">งบเงินรายได้</span>
+                  <span id="home-budget-rev-cats" class="text-[10px] text-slate-400 truncate text-right">-</span>
                 </div>
                 <div class="grid grid-cols-3 gap-2 text-center font-bold">
-                  <div class="bg-slate-50 text-slate-600 py-2 rounded-lg">16,219,160</div>
-                  <div class="bg-slate-50 text-slate-600 py-2 rounded-lg">1,480,200</div>
-                  <div class="bg-slate-50 text-slate-600 py-2 rounded-lg">14,738,960</div>
+                  <div id="home-budget-rev-total" class="bg-slate-50 text-slate-600 py-2 px-1 rounded-lg">0</div>
+                  <div id="home-budget-rev-exp" class="bg-slate-50 text-slate-600 py-2 px-1 rounded-lg">0</div>
+                  <div id="home-budget-rev-rem" class="bg-slate-50 text-slate-600 py-2 px-1 rounded-lg">0</div>
                 </div>
               </div>
             </div>
           </div>
 
           <div class="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-            <span>เบิกจ่ายไปแล้ว 8.45%</span>
+            <span id="home-budget-pct-text">เบิกจ่ายไปแล้ว 0.00%</span>
             <span class="text-brand-600 font-medium cursor-pointer" onclick="navigate('budget')">ดูรายละเอียดงบประมาณ →</span>
           </div>
         </div>
@@ -1305,7 +1309,9 @@
       editList: [],
       officeList: [],
       holidays: [],
-      configs: { KPI_DAYS: 20 }
+      configs: { KPI_DAYS: 20 },
+      budgets: [],
+      expenses: []
     };
 
     const initialDateObj = new Date();
@@ -1327,9 +1333,11 @@
     window.addEventListener('DOMContentLoaded', async () => {
       initCalendarSelectors();
       initHomeFinanceDefaults();
+      initHomeBudgetDefaults();
       initFlatpickr();
       renderCalendar();
       renderHomeFinanceCard();
+      renderHomeBudgetCard();
       initGoogleAuth();
 
       // Check session
@@ -1688,14 +1696,16 @@
       if (syncIcon) syncIcon.classList.add('sync-active');
 
       try {
-        const [deptRows, audRows, trackRows, editRows, cfgRows, offRows, holRows] = await Promise.all([
+        const [deptRows, audRows, trackRows, editRows, cfgRows, offRows, holRows, budgetRows, expenseRows] = await Promise.all([
           fetchSheetData('ส่วนงาน').catch(e => []),
           fetchSheetData('ผู้ตรวจสอบ').catch(e => []),
           fetchSheetData('Tracking').catch(e => []),
           fetchSheetData('Edit').catch(e => []),
           fetchSheetData('Config').catch(e => []),
           fetchSheetData('Office').catch(e => []),
-          fetchSheetData('Holiday').catch(e => [])
+          fetchSheetData('Holiday').catch(e => []),
+          fetchSheetData('Budget').catch(e => []),
+          fetchSheetData('Expense').catch(e => [])
         ]);
 
         // 1. ส่วนงาน (41 ส่วนงาน)
@@ -1818,18 +1828,65 @@
           configs.ALERT_DAYS = Math.max(1, (parseInt(configs.KPI_DAYS, 10) || 20) - 2);
         }
 
-        sheetData = { departments, auditors, trackingList, editList, officeList, holidays, configs };
+        // 8. Budget (คุมงบประมาณ)
+        // Cols: A:รหัสงบประมาณ, B:ปีงบประมาณ, C:ประเภท, D:หมวดงบ, E:หมวดย่อย, F:กลุ่มถัวจ่าย, G:รายการ, H:จำนวนเงิน
+        const parseAmount = (val) => {
+          if (typeof val === 'number') return isFinite(val) ? val : 0;
+          if (val === undefined || val === null) return 0;
+          const cleaned = val.toString().replace(/,/g, '').trim();
+          const num = parseFloat(cleaned);
+          return isFinite(num) ? num : 0;
+        };
+
+        const budgets = [];
+        budgetRows.forEach(r => {
+          const code = (r[0] || '').toString().trim();
+          if (code && code !== 'รหัสงบประมาณ' && !code.includes('รหัสงบ')) {
+            budgets.push({
+              code: code,
+              fiscalYear: (r[1] || '').toString().trim(),
+              type: (r[2] || '').toString().trim(),
+              category: (r[3] || '').toString().trim(),
+              subCategory: (r[4] || '').toString().trim(),
+              transferGroup: (r[5] || '').toString().trim(),
+              item: (r[6] || '').toString().trim(),
+              amount: parseAmount(r[7])
+            });
+          }
+        });
+
+        // 9. Expense (คุมค่าใช้จ่าย)
+        // Cols: A:รหัสงบประมาณ, B:ปีงบประมาณ, C:วันที่เบิกจ่าย, D:รายการ, E:หมวดงบ, F:หมวดย่อย, G:จำนวนเงิน
+        const expenses = [];
+        expenseRows.forEach(r => {
+          const code = (r[0] || '').toString().trim();
+          if (code && code !== 'รหัสงบประมาณ' && !code.includes('รหัสงบ')) {
+            expenses.push({
+              code: code,
+              fiscalYear: (r[1] || '').toString().trim(),
+              date: (r[2] || '').toString().trim(),
+              item: (r[3] || '').toString().trim(),
+              category: (r[4] || '').toString().trim(),
+              subCategory: (r[5] || '').toString().trim(),
+              amount: parseAmount(r[6])
+            });
+          }
+        });
+
+        sheetData = { departments, auditors, trackingList, editList, officeList, holidays, configs, budgets, expenses };
 
         // Populate dropdowns & matrix & calendar
         populatePersonnelDropdowns();
         populateDepartmentFilterDropdown();
         populateAuditorFilterDropdown();
+        populateBudgetYearFilter();
         updateKpiDisplay();
         renderCalendar();
         renderAttendanceList();
         renderTodaySummaryCard();
         renderFinanceMatrix();
         renderHomeFinanceCard();
+        renderHomeBudgetCard();
         renderRecentFinanceTable();
         calculateSummaryKPIs();
         initFlatpickr();
@@ -3647,6 +3704,137 @@
       if (elPend) elPend.textContent = `${pendingPct}% (${pendingCount})`;
 
       renderFinanceGauge(approvedPct, processPct, pendingPct);
+    }
+
+    // -------------------------------------------------------------
+    // HOME CARD 3: งบประมาณ ประจำปี (เชื่อมชีท Budget และ Expense)
+    // -------------------------------------------------------------
+    function initHomeBudgetDefaults() {
+      const fy = getCurrentThaiFiscalYearBE();
+      const ySel = document.getElementById('home-budget-filter-year');
+      if (ySel) {
+        if (![...ySel.options].some(o => o.value === fy)) {
+          ySel.insertAdjacentHTML('afterbegin', `<option value="${fy}">ปีงบ ${fy}</option>`);
+        }
+        ySel.value = fy;
+      }
+    }
+
+    function populateBudgetYearFilter() {
+      const ySel = document.getElementById('home-budget-filter-year');
+      if (!ySel) return;
+      const prevVal = ySel.value || getCurrentThaiFiscalYearBE();
+      const currentFY = getCurrentThaiFiscalYearBE();
+      const yearSet = new Set([currentFY]);
+      (sheetData.budgets || []).forEach(b => { if (b.fiscalYear) yearSet.add(b.fiscalYear); });
+      (sheetData.expenses || []).forEach(e => { if (e.fiscalYear) yearSet.add(e.fiscalYear); });
+
+      const sortedYears = [...yearSet].sort((a, b) => (parseInt(b, 10) || 0) - (parseInt(a, 10) || 0));
+      ySel.innerHTML = sortedYears.map(y => `<option value="${y}">ปีงบ ${y}</option>`).join('');
+      ySel.value = sortedYears.includes(prevVal) ? prevVal : (sortedYears.includes(currentFY) ? currentFY : sortedYears[0]);
+    }
+
+    function formatBudgetCellNumber(num) {
+      const n = Number(num) || 0;
+      const hasDecimal = Math.abs(n - Math.round(n)) > 0.004;
+      return n.toLocaleString('en-US', {
+        minimumFractionDigits: hasDecimal ? 2 : 0,
+        maximumFractionDigits: 2
+      });
+    }
+
+    function renderHomeBudgetCard() {
+      const ySel = document.getElementById('home-budget-filter-year');
+      const fy = (ySel ? ySel.value : getCurrentThaiFiscalYearBE()).toString().trim();
+
+      const titleYearEl = document.getElementById('home-budget-title-year');
+      if (titleYearEl) titleYearEl.textContent = fy;
+
+      const budgetsAll = sheetData.budgets || [];
+      const expensesAll = sheetData.expenses || [];
+
+      // Map code+year -> ประเภท ('แผ่นดิน' | 'รายได้') และ code -> ประเภท สำหรับ fallback
+      const typeByCodeYear = {};
+      const typeByCode = {};
+      budgetsAll.forEach(b => {
+        if (b.code && b.type) {
+          if (b.fiscalYear) typeByCodeYear[`${b.code}|${b.fiscalYear}`] = b.type;
+          typeByCode[b.code] = b.type;
+        }
+      });
+
+      const resolveBudgetBucket = (typeStr, codeStr) => {
+        const t = (typeStr || '').trim();
+        if (t.includes('แผ่นดิน')) return 'gov';
+        if (t.includes('รายได้')) return 'rev';
+        // Fallback กรณีรหัสยังไม่อยู่ในชีท Budget (รูปแบบรหัส CMU: ตัวที่ 3 เป็น 1 = แผ่นดิน, 2 = รายได้)
+        const c = (codeStr || '').trim();
+        if (/^\d{2}1/.test(c)) return 'gov';
+        if (/^\d{2}2/.test(c)) return 'rev';
+        return 'rev';
+      };
+
+      let govBudget = 0;
+      let revBudget = 0;
+      const govCats = new Set();
+      const revCats = new Set();
+
+      budgetsAll
+        .filter(b => b.fiscalYear === fy)
+        .forEach(b => {
+          const bucket = resolveBudgetBucket(b.type, b.code);
+          if (bucket === 'gov') {
+            govBudget += b.amount;
+            if (b.category) govCats.add(b.category);
+          } else {
+            revBudget += b.amount;
+            if (b.category) revCats.add(b.category);
+          }
+        });
+
+      let govExpense = 0;
+      let revExpense = 0;
+
+      expensesAll
+        .filter(e => e.fiscalYear === fy)
+        .forEach(e => {
+          const mappedType = typeByCodeYear[`${e.code}|${e.fiscalYear}`] || typeByCode[e.code] || '';
+          const bucket = resolveBudgetBucket(mappedType, e.code);
+          if (bucket === 'gov') {
+            govExpense += e.amount;
+          } else {
+            revExpense += e.amount;
+          }
+        });
+
+      const govRemain = govBudget - govExpense;
+      const revRemain = revBudget - revExpense;
+      const totalBudget = govBudget + revBudget;
+      const totalExpense = govExpense + revExpense;
+      const pct = totalBudget > 0 ? ((totalExpense / totalBudget) * 100).toFixed(2) : '0.00';
+
+      const totalEl = document.getElementById('home-budget-total');
+      if (totalEl) {
+        totalEl.textContent = '฿' + totalBudget.toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+      }
+
+      const setText = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+      };
+
+      setText('home-budget-gov-cats', govCats.size > 0 ? [...govCats].join(', ') : 'ยังไม่มีรายการ');
+      setText('home-budget-rev-cats', revCats.size > 0 ? [...revCats].join(', ') : 'ยังไม่มีรายการ');
+      setText('home-budget-gov-total', formatBudgetCellNumber(govBudget));
+      setText('home-budget-gov-exp', formatBudgetCellNumber(govExpense));
+      setText('home-budget-gov-rem', formatBudgetCellNumber(govRemain));
+      setText('home-budget-rev-total', formatBudgetCellNumber(revBudget));
+      setText('home-budget-rev-exp', formatBudgetCellNumber(revExpense));
+      setText('home-budget-rev-rem', formatBudgetCellNumber(revRemain));
+      setText('home-budget-pct-text', `เบิกจ่ายไปแล้ว ${pct}%`);
     }
 
     // -------------------------------------------------------------
