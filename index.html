@@ -1856,7 +1856,7 @@
         });
 
         // 9. Expense (คุมค่าใช้จ่าย)
-        // Cols: A:รหัสงบประมาณ, B:ปีงบประมาณ, C:วันที่เบิกจ่าย, D:รายการ, E:หมวดงบ, F:หมวดย่อย, G:จำนวนเงิน
+        // Cols: A:รหัสงบประมาณ, B:ปีงบประมาณ, C:วันที่เบิกจ่าย, D:เลขที่หนังสือ, E:เลขที่ใบตั้งหนี้, F:รายการ, G:หมวดงบ, H:หมวดย่อย, I:จำนวนเงิน, J:รายละเอียด, K:อ้างถึงหนังสือ, L:หนังสือลงวันที่, M:หมายเหตุ
         const expenses = [];
         expenseRows.forEach(r => {
           const code = (r[0] || '').toString().trim();
@@ -1865,10 +1865,16 @@
               code: code,
               fiscalYear: (r[1] || '').toString().trim(),
               date: (r[2] || '').toString().trim(),
-              item: (r[3] || '').toString().trim(),
-              category: (r[4] || '').toString().trim(),
-              subCategory: (r[5] || '').toString().trim(),
-              amount: parseAmount(r[6])
+              docNo: (r[3] || '').toString().trim(),
+              debtNo: (r[4] || '').toString().trim(),
+              item: (r[5] || '').toString().trim(),
+              category: (r[6] || '').toString().trim(),
+              subCategory: (r[7] || '').toString().trim(),
+              amount: parseAmount(r[8]),
+              detail: (r[9] || '').toString().trim(),
+              refDoc: (r[10] || '').toString().trim(),
+              docDate: (r[11] || '').toString().trim(),
+              note: (r[12] || '').toString().trim()
             });
           }
         });
