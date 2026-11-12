@@ -945,7 +945,7 @@
 
     <!-- VIEW 2.5: งานงบประมาณ (BUDGET PLANNING & EXECUTION) -->
     <main id="view-budget" class="p-4 sm:p-6 space-y-5 hidden">
-      <!-- Top Header & Actions -->
+      <!-- Top Header & 4 Overview Filters -->
       <div class="bg-white rounded-2xl p-4 sm:p-5 card-shadow border border-slate-100">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
@@ -965,13 +965,13 @@
           </div>
         </div>
 
-        <!-- 5 Filters Bar -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+        <!-- 4 Overview Filters Bar -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
           <div>
             <label class="block text-[11px] font-semibold text-slate-500 mb-1">1. ปีงบประมาณ</label>
             <select id="budget-filter-year" onchange="onBudgetFilterChange('year')" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer">
-              <option value="2570">ปีงบ 2570</option>
-              <option value="2569">ปีงบ 2569</option>
+              <option value="2570">2570</option>
+              <option value="2569">2569</option>
             </select>
           </div>
           <div>
@@ -994,84 +994,141 @@
               <option value="all">ทั้งหมด</option>
             </select>
           </div>
+        </div>
+      </div>
+
+      <!-- Overview Section: Table Left + 3 Stacked KPI Cards Right -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        <!-- Table 1 (Left): สรุปภาพรวมงบประมาณ ประจำปี ... -->
+        <div class="lg:col-span-9 bg-white rounded-2xl p-5 card-shadow border border-slate-100">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div>
+              <h3 class="text-sm font-bold text-slate-800">สรุปภาพรวมงบประมาณ ประจำปี <span id="budget-summary-title-year">2570</span></h3>
+              <p class="text-[11px] text-slate-400">แยกส่วนระหว่างเงินแผ่นดินและเงินรายได้ (ข้อมูลจากชีท Budget และ Expense)</p>
+            </div>
+            <span id="budget-table-scope-badge" class="text-[11px] font-semibold text-brand-700 bg-brand-50 px-3 py-1 rounded-full">ปีงบประมาณ 2570</span>
+          </div>
+
+          <div class="overflow-x-auto border border-slate-100 rounded-xl">
+            <table class="w-full text-left text-xs whitespace-nowrap">
+              <thead class="bg-purple-100/70 text-slate-700 font-bold border-b border-purple-200">
+                <tr>
+                  <th class="py-2.5 px-3">รหัสงบประมาณ</th>
+                  <th class="py-2.5 px-3">หมวดงบ</th>
+                  <th class="py-2.5 px-3">หมวดย่อย</th>
+                  <th class="py-2.5 px-3 text-right">งบประมาณ</th>
+                  <th class="py-2.5 px-3 text-right">ค่าใช้จ่าย</th>
+                  <th class="py-2.5 px-3 text-right">คงเหลือ</th>
+                </tr>
+              </thead>
+              <tbody id="budget-detail-tbody" class="divide-y divide-slate-100">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 3 Summary KPI Cards (Right, single vertical column) -->
+        <div class="lg:col-span-3 flex flex-col gap-4">
+          <div class="bg-white rounded-2xl p-5 card-shadow border border-slate-100">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold text-slate-500">เงินงบประมาณ (Budget)</span>
+              <span class="w-8 h-8 rounded-xl bg-brand-50 text-brand-700 flex items-center justify-center text-sm">🏦</span>
+            </div>
+            <div id="budget-kpi-total" class="text-2xl font-bold text-brand-700 tracking-tight">฿0.00</div>
+            <div id="budget-kpi-total-sub" class="text-[11px] text-slate-400 mt-1">ประจำปีงบประมาณ 2570</div>
+          </div>
+
+          <div class="bg-white rounded-2xl p-5 card-shadow border border-slate-100">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold text-slate-500">ค่าใช้จ่าย (Expense)</span>
+              <span class="w-8 h-8 rounded-xl bg-purple-100 text-brand-800 flex items-center justify-center text-sm">🧾</span>
+            </div>
+            <div id="budget-kpi-expense" class="text-2xl font-bold text-brand-800 tracking-tight">฿0.00</div>
+            <div id="budget-kpi-expense-sub" class="text-[11px] text-slate-400 mt-1">0 รายการเบิกจ่าย</div>
+          </div>
+
+          <div class="bg-white rounded-2xl p-5 card-shadow border border-slate-100">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold text-slate-500">เงินคงเหลือ (Remaining)</span>
+              <span class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center text-sm">💎</span>
+            </div>
+            <div id="budget-kpi-remain" class="text-2xl font-bold text-indigo-700 tracking-tight">฿0.00</div>
+            <div id="budget-kpi-remain-sub" class="text-[11px] text-slate-400 mt-1">เบิกจ่ายไปแล้ว 0.00%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table 2: รายละเอียดการเบิกจ่าย ปีงบประมาณ .... (ตัวกรองแยกอิสระ) -->
+      <div class="bg-white rounded-2xl p-5 card-shadow border border-slate-100 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <label class="block text-[11px] font-semibold text-slate-500 mb-1">5. รายการ (ค่าใช้จ่าย)</label>
-            <select id="budget-filter-item" onchange="onBudgetFilterChange('item')" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer">
+            <h3 class="text-sm font-bold text-slate-800">รายละเอียดการเบิกจ่าย ปีงบประมาณ <span id="expense-table-title-year">2570</span></h3>
+            <p id="expense-table-count-sub" class="text-[11px] text-slate-400">ทั้งหมด 0 รายการ</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="resetExpenseTableFilters()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-semibold transition-all">
+              รีเซ็ตตัวกรองตาราง
+            </button>
+            <button onclick="openExpenseModal('add')" class="px-3.5 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-xl text-xs font-semibold transition-all">
+              + เพิ่มรายการค่าใช้จ่าย
+            </button>
+          </div>
+        </div>
+
+        <!-- Independent Filters for Expense Table -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5 text-xs bg-slate-50/80 p-3 rounded-xl border border-slate-100">
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-500 mb-1">ปีงบประมาณ</label>
+            <select id="exp-filter-year" onchange="onExpenseTableFilterChange('year')" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer">
+              <option value="2570">2570</option>
+              <option value="2569">2569</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-500 mb-1">แหล่งเงิน</label>
+            <select id="exp-filter-source" onchange="onExpenseTableFilterChange('source')" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer">
+              <option value="all">ทั้งหมด</option>
+              <option value="แผ่นดิน">เงินแผ่นดิน</option>
+              <option value="รายได้">เงินรายได้</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-500 mb-1">เดือน (วันที่เบิกจ่าย)</label>
+            <select id="exp-filter-month" onchange="onExpenseTableFilterChange('month')" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer">
+              <option value="all">ทั้งหมด</option>
+              <option value="10">ตุลาคม</option>
+              <option value="11">พฤศจิกายน</option>
+              <option value="12">ธันวาคม</option>
+              <option value="1">มกราคม</option>
+              <option value="2">กุมภาพันธ์</option>
+              <option value="3">มีนาคม</option>
+              <option value="4">เมษายน</option>
+              <option value="5">พฤษภาคม</option>
+              <option value="6">มิถุนายน</option>
+              <option value="7">กรกฎาคม</option>
+              <option value="8">สิงหาคม</option>
+              <option value="9">กันยายน</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-500 mb-1">หมวดย่อย</label>
+            <select id="exp-filter-subcat" onchange="onExpenseTableFilterChange('subcat')" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer">
               <option value="all">ทั้งหมด</option>
             </select>
           </div>
-        </div>
-      </div>
-
-      <!-- 3 Summary KPI Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="bg-white rounded-2xl p-5 card-shadow border border-slate-100">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-semibold text-slate-500">เงินงบประมาณ (Budget)</span>
-            <span class="w-8 h-8 rounded-xl bg-brand-50 text-brand-700 flex items-center justify-center text-sm">🏦</span>
-          </div>
-          <div id="budget-kpi-total" class="text-2xl font-bold text-brand-700 tracking-tight">฿0.00</div>
-          <div id="budget-kpi-total-sub" class="text-[11px] text-slate-400 mt-1">ประจำปีงบประมาณ 2570</div>
-        </div>
-
-        <div class="bg-white rounded-2xl p-5 card-shadow border border-slate-100">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-semibold text-slate-500">ค่าใช้จ่าย (Expense)</span>
-            <span class="w-8 h-8 rounded-xl bg-purple-100 text-brand-800 flex items-center justify-center text-sm">🧾</span>
-          </div>
-          <div id="budget-kpi-expense" class="text-2xl font-bold text-brand-800 tracking-tight">฿0.00</div>
-          <div id="budget-kpi-expense-sub" class="text-[11px] text-slate-400 mt-1">0 รายการเบิกจ่าย</div>
-        </div>
-
-        <div class="bg-white rounded-2xl p-5 card-shadow border border-slate-100">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-semibold text-slate-500">เงินคงเหลือ (Remaining)</span>
-            <span class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center text-sm">💎</span>
-          </div>
-          <div id="budget-kpi-remain" class="text-2xl font-bold text-indigo-700 tracking-tight">฿0.00</div>
-          <div id="budget-kpi-remain-sub" class="text-[11px] text-slate-400 mt-1">เบิกจ่ายไปแล้ว 0.00%</div>
-        </div>
-      </div>
-
-      <!-- Table 1: ตารางแสดงรายละเอียดงบประมาณแต่ละรหัส -->
-      <div class="bg-white rounded-2xl p-5 card-shadow border border-slate-100">
-        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div>
-            <h3 class="text-sm font-bold text-slate-800">รายละเอียดงบประมาณรายรหัส</h3>
-            <p class="text-[11px] text-slate-400">แยกส่วนระหว่างเงินแผ่นดินและเงินรายได้ (ข้อมูลจากชีท Budget และ Expense)</p>
+            <label class="block text-[11px] font-semibold text-slate-500 mb-1">รหัสงบประมาณ</label>
+            <select id="exp-filter-code" onchange="onExpenseTableFilterChange('code')" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer">
+              <option value="all">ทั้งหมด</option>
+            </select>
           </div>
-          <span id="budget-table-scope-badge" class="text-[11px] font-semibold text-brand-700 bg-brand-50 px-3 py-1 rounded-full">ปีงบประมาณ 2570</span>
-        </div>
-
-        <div class="overflow-x-auto border border-slate-100 rounded-xl">
-          <table class="w-full text-left text-xs whitespace-nowrap">
-            <thead class="bg-purple-100/70 text-slate-700 font-bold border-b border-purple-200">
-              <tr>
-                <th class="py-2.5 px-3">รหัสงบประมาณ</th>
-                <th class="py-2.5 px-3">หมวดงบ</th>
-                <th class="py-2.5 px-3">หมวดย่อย</th>
-                <th class="py-2.5 px-3 text-right">งบประมาณ</th>
-                <th class="py-2.5 px-3 text-right">ค่าใช้จ่าย</th>
-                <th class="py-2.5 px-3 text-right">คงเหลือ</th>
-              </tr>
-            </thead>
-            <tbody id="budget-detail-tbody" class="divide-y divide-slate-100">
-              <!-- Populated dynamically -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Table 2: ตารางแสดงค่าใช้จ่าย (ชีท Expense) -->
-      <div class="bg-white rounded-2xl p-5 card-shadow border border-slate-100">
-        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div>
-            <h3 class="text-sm font-bold text-slate-800">รายการเบิกจ่ายค่าใช้จ่าย (ชีท Expense)</h3>
-            <p id="expense-table-count-sub" class="text-[11px] text-slate-400">ทั้งหมด 0 รายการ</p>
+            <label class="block text-[11px] font-semibold text-slate-500 mb-1">รายการ (ค่าใช้จ่าย)</label>
+            <select id="exp-filter-item" onchange="onExpenseTableFilterChange('item')" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer">
+              <option value="all">ทั้งหมด</option>
+            </select>
           </div>
-          <button onclick="openExpenseModal('add')" class="px-3.5 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-xl text-xs font-semibold transition-all">
-            + เพิ่มรายการค่าใช้จ่าย
-          </button>
         </div>
 
         <div class="overflow-x-auto border border-slate-100 rounded-xl">
@@ -1469,13 +1526,13 @@
           <input type="hidden" id="exp-modal-mode" value="add">
           <input type="hidden" id="exp-modal-row-num" value="">
 
-          <!-- Row 1: ปีงบประมาณ + รหัสงบประมาณ (ดึงจากชีท Budget) -->
+          <!-- Row 1: ปีงบประมาณ + รหัสงบประมาณ (ดึงจากชีท Budget แยกกลุ่มเงินแผ่นดิน/เงินรายได้) -->
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label class="block font-semibold text-slate-700 mb-1">ปีงบประมาณ (Col B) *</label>
               <select id="exp-modal-year" onchange="onExpenseModalYearChange()" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
-                <option value="2570">2570 (ต.ค. 69 - ก.ย. 70)</option>
-                <option value="2569">2569 (ต.ค. 68 - ก.ย. 69)</option>
+                <option value="2570">2570</option>
+                <option value="2569">2569</option>
               </select>
             </div>
             <div class="sm:col-span-2">
@@ -1486,19 +1543,19 @@
             </div>
           </div>
 
-          <!-- Row 2: รหัสงบประมาณ (Col A), หมวดงบ (Col G), หมวดย่อย (Col H) อัตโนมัติ -->
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-purple-50/50 border border-purple-100 rounded-2xl">
+          <!-- Row 2: รหัสงบประมาณ (Col A), หมวดงบ (Col G), หมวดย่อย (Col H) ล็อคดึงอัตโนมัติ -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-purple-50/60 border border-purple-200 rounded-2xl">
             <div>
               <label class="block font-semibold text-brand-800 mb-1">รหัสงบประมาณ (Col A) *</label>
-              <input type="text" id="exp-modal-code" required placeholder="เช่น 701E09961G-00010" class="w-full bg-white border border-purple-200 rounded-xl px-3 py-2 text-slate-800 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <input type="text" id="exp-modal-code" required readonly placeholder="เลือกจากรายการด้านบน" class="w-full bg-slate-100/90 border border-purple-200 rounded-xl px-3 py-2 text-slate-700 font-semibold cursor-not-allowed focus:outline-none">
             </div>
             <div>
               <label class="block font-semibold text-brand-800 mb-1">หมวดงบ (Col G - อัตโนมัติ)</label>
-              <input type="text" id="exp-modal-category" placeholder="ดึงอัตโนมัติจาก Budget" class="w-full bg-white border border-purple-200 rounded-xl px-3 py-2 text-slate-700 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <input type="text" id="exp-modal-category" readonly placeholder="ดึงอัตโนมัติจาก Budget" class="w-full bg-slate-100/90 border border-purple-200 rounded-xl px-3 py-2 text-slate-600 cursor-not-allowed focus:outline-none">
             </div>
             <div>
               <label class="block font-semibold text-brand-800 mb-1">หมวดย่อย (Col H - อัตโนมัติ)</label>
-              <input type="text" id="exp-modal-subcat" placeholder="ดึงอัตโนมัติจาก Budget" class="w-full bg-white border border-purple-200 rounded-xl px-3 py-2 text-slate-700 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <input type="text" id="exp-modal-subcat" readonly placeholder="ดึงอัตโนมัติจาก Budget" class="w-full bg-slate-100/90 border border-purple-200 rounded-xl px-3 py-2 text-slate-600 cursor-not-allowed focus:outline-none">
             </div>
           </div>
 
@@ -1536,8 +1593,8 @@
             <input type="text" id="exp-modal-detail" placeholder="รายละเอียดเพิ่มเติม" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none">
           </div>
 
-          <!-- Row 6: อ้างถึงหนังสือ (Col K), หนังสือลงวันที่ (Col L), หมายเหตุ (Col M) -->
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <!-- Row 6: อ้างถึงหนังสือ (Col K), หนังสือลงวันที่ (Col L) -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="block font-semibold text-slate-700 mb-1">อ้างถึงหนังสือ (Col K)</label>
               <input type="text" id="exp-modal-refdoc" placeholder="เลขที่หนังสืออ้างอิง" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none">
@@ -1546,10 +1603,12 @@
               <label class="block font-semibold text-slate-700 mb-1">หนังสือลงวันที่ (Col L)</label>
               <input type="text" id="exp-modal-docdate" placeholder="วว/ดด/ปปปป" class="datepicker w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none">
             </div>
-            <div>
-              <label class="block font-semibold text-slate-700 mb-1">หมายเหตุ (Col M)</label>
-              <input type="text" id="exp-modal-note" placeholder="หมายเหตุ" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none">
-            </div>
+          </div>
+
+          <!-- Row 7: หมายเหตุ (Col M - ช่องยาว) -->
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">หมายเหตุ (Col M)</label>
+            <textarea id="exp-modal-note" rows="2" placeholder="ระบุหมายเหตุเพิ่มเติม (รองรับข้อความยาว)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none resize-y"></textarea>
           </div>
 
           <div class="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 mt-4">
@@ -4169,42 +4228,37 @@
         .replace(/"/g, '&quot;');
     }
 
-    function getBudgetFiscalPeriodLabel(fy) {
-      const yNum = parseInt(fy, 10);
-      if (!yNum) return '';
-      const startShort = (yNum - 1).toString().slice(-2);
-      const endShort = yNum.toString().slice(-2);
-      return `(ต.ค. ${startShort} - ก.ย. ${endShort})`;
+    function getSortedBudgetYears() {
+      const currentFY = getCurrentThaiFiscalYearBE();
+      const yearSet = new Set([currentFY]);
+      (sheetData.budgets || []).forEach(b => { if (b.fiscalYear) yearSet.add(b.fiscalYear); });
+      (sheetData.expenses || []).forEach(e => { if (e.fiscalYear) yearSet.add(e.fiscalYear); });
+      return [...yearSet].sort((a, b) => (parseInt(b, 10) || 0) - (parseInt(a, 10) || 0));
     }
 
     function populateBudgetViewFilters() {
+      // 1. ตัวกรองส่วนบน (สรุปภาพรวมงบประมาณ): ปีงบ, แหล่งเงิน, หมวดย่อย, รหัสงบประมาณ
       const ySel = document.getElementById('budget-filter-year');
       const sSel = document.getElementById('budget-filter-source');
       const subSel = document.getElementById('budget-filter-subcat');
       const codeSel = document.getElementById('budget-filter-code');
-      const itemSel = document.getElementById('budget-filter-item');
       if (!ySel) return;
 
       const currentFY = getCurrentThaiFiscalYearBE();
+      const sortedYears = getSortedBudgetYears();
       const prevYear = ySel.value || currentFY;
-      const yearSet = new Set([currentFY]);
-      (sheetData.budgets || []).forEach(b => { if (b.fiscalYear) yearSet.add(b.fiscalYear); });
-      (sheetData.expenses || []).forEach(e => { if (e.fiscalYear) yearSet.add(e.fiscalYear); });
-      const sortedYears = [...yearSet].sort((a, b) => (parseInt(b, 10) || 0) - (parseInt(a, 10) || 0));
-      ySel.innerHTML = sortedYears.map(y => `<option value="${y}">ปีงบ ${y} ${getBudgetFiscalPeriodLabel(y)}</option>`).join('');
+      ySel.innerHTML = sortedYears.map(y => `<option value="${y}">${y}</option>`).join('');
       ySel.value = sortedYears.includes(prevYear) ? prevYear : (sortedYears.includes(currentFY) ? currentFY : sortedYears[0]);
 
       const fy = ySel.value;
       const source = sSel ? sSel.value : 'all';
       const prevSub = subSel ? subSel.value : 'all';
       const prevCode = codeSel ? codeSel.value : 'all';
-      const prevItem = itemSel ? itemSel.value : 'all';
 
       const maps = buildBudgetTypeMaps();
       const budgetsFY = (sheetData.budgets || []).filter(b => b.fiscalYear === fy && (source === 'all' || resolveBudgetTypeBucket(b.type, b.code) === source));
       const expensesFY = (sheetData.expenses || []).filter(e => e.fiscalYear === fy && (source === 'all' || getExpenseBucket(e, maps) === source));
 
-      // 3. หมวดย่อย
       if (subSel) {
         const subSet = new Set();
         budgetsFY.forEach(b => { if (b.subCategory) subSet.add(b.subCategory); });
@@ -4216,7 +4270,6 @@
 
       const selectedSub = subSel ? subSel.value : 'all';
 
-      // 4. รหัสงบประมาณ
       if (codeSel) {
         const codeSet = new Set();
         budgetsFY
@@ -4230,12 +4283,68 @@
         codeSel.value = codes.includes(prevCode) ? prevCode : 'all';
       }
 
+      // 2. ตัวกรองส่วนล่าง (ตารางรายละเอียดการเบิกจ่าย): อิสระจากส่วนบน
+      populateExpenseTableFilters();
+    }
+
+    function populateExpenseTableFilters() {
+      const ySel = document.getElementById('exp-filter-year');
+      const sSel = document.getElementById('exp-filter-source');
+      const mSel = document.getElementById('exp-filter-month');
+      const subSel = document.getElementById('exp-filter-subcat');
+      const codeSel = document.getElementById('exp-filter-code');
+      const itemSel = document.getElementById('exp-filter-item');
+      if (!ySel) return;
+
+      const currentFY = getCurrentThaiFiscalYearBE();
+      const sortedYears = getSortedBudgetYears();
+      const prevYear = ySel.value || currentFY;
+      ySel.innerHTML = sortedYears.map(y => `<option value="${y}">${y}</option>`).join('');
+      ySel.value = sortedYears.includes(prevYear) ? prevYear : (sortedYears.includes(currentFY) ? currentFY : sortedYears[0]);
+
+      const fy = ySel.value;
+      const source = sSel ? sSel.value : 'all';
+      const monthVal = mSel ? mSel.value : 'all';
+      const prevSub = subSel ? subSel.value : 'all';
+      const prevCode = codeSel ? codeSel.value : 'all';
+      const prevItem = itemSel ? itemSel.value : 'all';
+
+      const maps = buildBudgetTypeMaps();
+      const expensesScoped = (sheetData.expenses || []).filter(e => {
+        if (e.fiscalYear !== fy) return false;
+        if (source !== 'all' && getExpenseBucket(e, maps) !== source) return false;
+        if (monthVal !== 'all') {
+          const parsed = parseDateComponents(e.date);
+          if (!parsed || String(parsed.month) !== String(monthVal)) return false;
+        }
+        return true;
+      });
+
+      if (subSel) {
+        const subSet = new Set();
+        expensesScoped.forEach(e => { if (e.subCategory) subSet.add(e.subCategory); });
+        const subs = [...subSet];
+        subSel.innerHTML = '<option value="all">ทั้งหมด</option>' + subs.map(s => `<option value="${escapeHtmlStr(s)}">${escapeHtmlStr(s)}</option>`).join('');
+        subSel.value = subs.includes(prevSub) ? prevSub : 'all';
+      }
+
+      const selectedSub = subSel ? subSel.value : 'all';
+
+      if (codeSel) {
+        const codeSet = new Set();
+        expensesScoped
+          .filter(e => selectedSub === 'all' || e.subCategory === selectedSub)
+          .forEach(e => { if (e.code) codeSet.add(e.code); });
+        const codes = [...codeSet];
+        codeSel.innerHTML = '<option value="all">ทั้งหมด</option>' + codes.map(c => `<option value="${escapeHtmlStr(c)}">${escapeHtmlStr(c)}</option>`).join('');
+        codeSel.value = codes.includes(prevCode) ? prevCode : 'all';
+      }
+
       const selectedCode = codeSel ? codeSel.value : 'all';
 
-      // 5. รายการ (Col F ชีท Expense)
       if (itemSel) {
         const itemSet = new Set();
-        expensesFY
+        expensesScoped
           .filter(e => (selectedSub === 'all' || e.subCategory === selectedSub) && (selectedCode === 'all' || e.code === selectedCode))
           .forEach(e => { if (e.item) itemSet.add(e.item); });
         const items = [...itemSet];
@@ -4245,10 +4354,17 @@
     }
 
     function onBudgetFilterChange(level) {
-      if (level === 'year' || level === 'source' || level === 'subcat' || level === 'code') {
+      if (level === 'year' || level === 'source' || level === 'subcat') {
         populateBudgetViewFilters();
       }
-      renderBudgetView();
+      renderBudgetOverviewSection();
+    }
+
+    function onExpenseTableFilterChange(level) {
+      if (level === 'year' || level === 'source' || level === 'month' || level === 'subcat' || level === 'code') {
+        populateExpenseTableFilters();
+      }
+      renderExpenseDetailTable();
     }
 
     function resetBudgetFilters() {
@@ -4257,30 +4373,49 @@
       const sSel = document.getElementById('budget-filter-source');
       const subSel = document.getElementById('budget-filter-subcat');
       const codeSel = document.getElementById('budget-filter-code');
-      const itemSel = document.getElementById('budget-filter-item');
       if (ySel) ySel.value = fy;
       if (sSel) sSel.value = 'all';
       if (subSel) subSel.value = 'all';
       if (codeSel) codeSel.value = 'all';
-      if (itemSel) itemSel.value = 'all';
       populateBudgetViewFilters();
-      renderBudgetView();
+      renderBudgetOverviewSection();
+    }
+
+    function resetExpenseTableFilters() {
+      const fy = getCurrentThaiFiscalYearBE();
+      const ySel = document.getElementById('exp-filter-year');
+      const sSel = document.getElementById('exp-filter-source');
+      const mSel = document.getElementById('exp-filter-month');
+      const subSel = document.getElementById('exp-filter-subcat');
+      const codeSel = document.getElementById('exp-filter-code');
+      const itemSel = document.getElementById('exp-filter-item');
+      if (ySel) ySel.value = fy;
+      if (sSel) sSel.value = 'all';
+      if (mSel) mSel.value = 'all';
+      if (subSel) subSel.value = 'all';
+      if (codeSel) codeSel.value = 'all';
+      if (itemSel) itemSel.value = 'all';
+      populateExpenseTableFilters();
+      renderExpenseDetailTable();
     }
 
     function renderBudgetView() {
+      renderBudgetOverviewSection();
+      renderExpenseDetailTable();
+    }
+
+    function renderBudgetOverviewSection() {
       const ySel = document.getElementById('budget-filter-year');
       if (!ySel) return;
       const fy = (ySel.value || getCurrentThaiFiscalYearBE()).toString().trim();
       const source = document.getElementById('budget-filter-source')?.value || 'all';
       const subcat = document.getElementById('budget-filter-subcat')?.value || 'all';
       const codeFilter = document.getElementById('budget-filter-code')?.value || 'all';
-      const itemFilter = document.getElementById('budget-filter-item')?.value || 'all';
 
       const maps = buildBudgetTypeMaps();
       const budgetsAllFY = (sheetData.budgets || []).filter(b => b.fiscalYear === fy);
       const expensesAllFY = (sheetData.expenses || []).filter(e => e.fiscalYear === fy);
 
-      // นับจำนวนแถว Budget ต่อรหัส เพื่อจับคู่ Expense ให้แม่นยำไม่ซ้ำซ้อน
       const codeCountInBudget = {};
       budgetsAllFY.forEach(b => {
         codeCountInBudget[b.code] = (codeCountInBudget[b.code] || 0) + 1;
@@ -4299,11 +4434,9 @@
         if (source !== 'all' && bucket !== source) return false;
         if (subcat !== 'all' && e.subCategory !== subcat) return false;
         if (codeFilter !== 'all' && e.code !== codeFilter) return false;
-        if (itemFilter !== 'all' && e.item !== itemFilter) return false;
         return true;
       });
 
-      // คำนวณค่าใช้จ่ายต่อแถวใน Table 1
       const getRowExpense = (b) => {
         const isMulti = (codeCountInBudget[b.code] || 0) > 1;
         return filteredExpenses
@@ -4322,17 +4455,19 @@
       const totalRemain = totalBudget - totalExpense;
       const pct = totalBudget > 0 ? ((totalExpense / totalBudget) * 100).toFixed(2) : '0.00';
 
+      const titleYearEl = document.getElementById('budget-summary-title-year');
+      if (titleYearEl) titleYearEl.textContent = fy;
       const badge = document.getElementById('budget-table-scope-badge');
-      if (badge) badge.textContent = `ปีงบประมาณ ${fy} ${getBudgetFiscalPeriodLabel(fy)}`;
+      if (badge) badge.textContent = `ปีงบประมาณ ${fy}`;
 
       document.getElementById('budget-kpi-total').textContent = '฿' + formatMoney2(totalBudget);
-      document.getElementById('budget-kpi-total-sub').textContent = `ประจำปีงบประมาณ ${fy} ${getBudgetFiscalPeriodLabel(fy)}`;
+      document.getElementById('budget-kpi-total-sub').textContent = `ประจำปีงบประมาณ ${fy}`;
       document.getElementById('budget-kpi-expense').textContent = '฿' + formatMoney2(totalExpense);
       document.getElementById('budget-kpi-expense-sub').textContent = `${filteredExpenses.length} รายการเบิกจ่าย`;
       document.getElementById('budget-kpi-remain').textContent = '฿' + formatMoney2(totalRemain);
       document.getElementById('budget-kpi-remain-sub').textContent = `เบิกจ่ายไปแล้ว ${pct}%`;
 
-      // Render Table 1 (แยกส่วนเงินแผ่นดิน และ เงินรายได้)
+      // Render Table 1: ยอดรวมเงินแผ่นดิน/เงินรายได้ แสดงในบรรทัดเดียวกับหัวข้อกลุ่ม
       const bTbody = document.getElementById('budget-detail-tbody');
       if (bTbody) {
         const govRows = filteredBudgets.filter(b => resolveBudgetTypeBucket(b.type, b.code) === 'แผ่นดิน');
@@ -4342,19 +4477,15 @@
           if (rows.length === 0) return '';
           let secBud = 0;
           let secExp = 0;
-          let html = `
-            <tr class="bg-purple-50/60">
-              <td colspan="6" class="py-2 px-3 font-bold text-brand-700">${title}</td>
-            </tr>
-          `;
+          let rowsHtml = '';
           rows.forEach(b => {
             const expAmt = getRowExpense(b);
             const remAmt = b.amount - expAmt;
             secBud += b.amount;
             secExp += expAmt;
-            html += `
+            rowsHtml += `
               <tr class="hover:bg-slate-50 transition-colors">
-                <td class="py-2 px-3 font-mono text-slate-700">${escapeHtmlStr(b.code)}</td>
+                <td class="py-2 px-3 font-medium text-slate-700">${escapeHtmlStr(b.code)}</td>
                 <td class="py-2 px-3 text-slate-700">${escapeHtmlStr(b.category || '-')}</td>
                 <td class="py-2 px-3 text-slate-700">${escapeHtmlStr(b.subCategory || b.item || '-')}</td>
                 <td class="py-2 px-3 text-right font-semibold text-slate-800">${formatMoney2(b.amount)}</td>
@@ -4363,15 +4494,16 @@
               </tr>
             `;
           });
-          html += `
-            <tr class="bg-slate-50 font-bold text-slate-700 border-t border-slate-200">
-              <td colspan="3" class="py-2 px-3 text-right">รวม${title}</td>
-              <td class="py-2 px-3 text-right">${formatMoney2(secBud)}</td>
-              <td class="py-2 px-3 text-right text-brand-700">${formatMoney2(secExp)}</td>
-              <td class="py-2 px-3 text-right">${formatMoney2(secBud - secExp)}</td>
+          const secRem = secBud - secExp;
+          const headerSummaryRow = `
+            <tr class="bg-purple-50/80 border-t border-purple-100">
+              <td colspan="3" class="py-2.5 px-3 font-bold text-brand-700">${title}</td>
+              <td class="py-2.5 px-3 text-right font-bold text-brand-700">${formatMoney2(secBud)}</td>
+              <td class="py-2.5 px-3 text-right font-bold text-brand-700">${formatMoney2(secExp)}</td>
+              <td class="py-2.5 px-3 text-right font-bold ${secRem < 0 ? 'text-red-600' : 'text-brand-700'}">${formatMoney2(secRem)}</td>
             </tr>
           `;
-          return html;
+          return headerSummaryRow + rowsHtml;
         };
 
         let bodyHtml = '';
@@ -4392,8 +4524,36 @@
         }
         bTbody.innerHTML = bodyHtml;
       }
+    }
 
-      // Render Table 2 (Expense Table)
+    function renderExpenseDetailTable() {
+      const ySel = document.getElementById('exp-filter-year');
+      if (!ySel) return;
+      const fy = (ySel.value || getCurrentThaiFiscalYearBE()).toString().trim();
+      const source = document.getElementById('exp-filter-source')?.value || 'all';
+      const monthVal = document.getElementById('exp-filter-month')?.value || 'all';
+      const subcat = document.getElementById('exp-filter-subcat')?.value || 'all';
+      const codeFilter = document.getElementById('exp-filter-code')?.value || 'all';
+      const itemFilter = document.getElementById('exp-filter-item')?.value || 'all';
+
+      const titleYearEl = document.getElementById('expense-table-title-year');
+      if (titleYearEl) titleYearEl.textContent = fy;
+
+      const maps = buildBudgetTypeMaps();
+      const filteredExpenses = (sheetData.expenses || []).filter(e => {
+        if (e.fiscalYear !== fy) return false;
+        if (source !== 'all' && getExpenseBucket(e, maps) !== source) return false;
+        if (monthVal !== 'all') {
+          const parsed = parseDateComponents(e.date);
+          if (!parsed || String(parsed.month) !== String(monthVal)) return false;
+        }
+        if (subcat !== 'all' && e.subCategory !== subcat) return false;
+        if (codeFilter !== 'all' && e.code !== codeFilter) return false;
+        if (itemFilter !== 'all' && e.item !== itemFilter) return false;
+        return true;
+      });
+
+      const totalExpense = filteredExpenses.reduce((s, e) => s + e.amount, 0);
       const eTbody = document.getElementById('expense-detail-tbody');
       const eCountSub = document.getElementById('expense-table-count-sub');
       if (eCountSub) eCountSub.textContent = `ทั้งหมด ${filteredExpenses.length} รายการ (ปีงบประมาณ ${fy})`;
@@ -4440,12 +4600,23 @@
       const sel = document.getElementById('exp-modal-budget-select');
       if (!sel) return;
       const rows = (sheetData.budgets || []).filter(b => b.fiscalYear === fy);
-      let html = '<option value="">-- เลือกรหัสงบประมาณ (ดึงหมวดงบและหมวดย่อยอัตโนมัติ) --</option>';
+      const govEntries = [];
+      const revEntries = [];
       rows.forEach((b, idx) => {
-        const label = `${b.code} | ${b.subCategory || b.item || '-'} (${b.type || '-'})`;
-        const val = `${idx}`; // index within rows
-        html += `<option value="${val}">${escapeHtmlStr(label)}</option>`;
+        const bucket = resolveBudgetTypeBucket(b.type, b.code);
+        const label = `${b.code} | ${b.subCategory || b.item || '-'}`;
+        const optHtml = `<option value="${idx}">${escapeHtmlStr(label)}</option>`;
+        if (bucket === 'แผ่นดิน') govEntries.push(optHtml);
+        else revEntries.push(optHtml);
       });
+
+      let html = '<option value="">-- เลือกรหัสงบประมาณ --</option>';
+      if (govEntries.length > 0) {
+        html += `<optgroup label="เงินแผ่นดิน">${govEntries.join('')}</optgroup>`;
+      }
+      if (revEntries.length > 0) {
+        html += `<optgroup label="เงินรายได้">${revEntries.join('')}</optgroup>`;
+      }
       sel.innerHTML = html;
       sel._budgetRows = rows;
 
@@ -4458,13 +4629,21 @@
     function onExpenseModalYearChange() {
       const fy = document.getElementById('exp-modal-year')?.value || getCurrentThaiFiscalYearBE();
       populateExpenseModalBudgetOptions(fy, '', '');
+      document.getElementById('exp-modal-code').value = '';
+      document.getElementById('exp-modal-category').value = '';
+      document.getElementById('exp-modal-subcat').value = '';
     }
 
     function onExpenseModalBudgetSelect() {
       const sel = document.getElementById('exp-modal-budget-select');
       if (!sel || !sel._budgetRows) return;
       const idx = parseInt(sel.value, 10);
-      if (isNaN(idx) || !sel._budgetRows[idx]) return;
+      if (isNaN(idx) || !sel._budgetRows[idx]) {
+        document.getElementById('exp-modal-code').value = '';
+        document.getElementById('exp-modal-category').value = '';
+        document.getElementById('exp-modal-subcat').value = '';
+        return;
+      }
       const b = sel._budgetRows[idx];
       document.getElementById('exp-modal-code').value = b.code || '';
       document.getElementById('exp-modal-category').value = b.category || '';
@@ -4474,17 +4653,12 @@
     function openExpenseModal(mode, expIndex = -1) {
       const modal = document.getElementById('expense-modal');
       if (!modal) return;
-      const currentFY = document.getElementById('budget-filter-year')?.value || getCurrentThaiFiscalYearBE();
+      const currentFY = document.getElementById('exp-filter-year')?.value || getCurrentThaiFiscalYearBE();
 
-      // Populate year dropdown dynamically
       const ySel = document.getElementById('exp-modal-year');
       if (ySel) {
-        const sysFY = getCurrentThaiFiscalYearBE();
-        const yearSet = new Set([sysFY, currentFY]);
-        (sheetData.budgets || []).forEach(b => { if (b.fiscalYear) yearSet.add(b.fiscalYear); });
-        (sheetData.expenses || []).forEach(e => { if (e.fiscalYear) yearSet.add(e.fiscalYear); });
-        const sortedYears = [...yearSet].sort((a, b) => (parseInt(b, 10) || 0) - (parseInt(a, 10) || 0));
-        ySel.innerHTML = sortedYears.map(y => `<option value="${y}">ปีงบ ${y} ${getBudgetFiscalPeriodLabel(y)}</option>`).join('');
+        const sortedYears = getSortedBudgetYears();
+        ySel.innerHTML = sortedYears.map(y => `<option value="${y}">${y}</option>`).join('');
       }
 
       document.getElementById('exp-modal-mode').value = mode;
@@ -4539,6 +4713,12 @@
 
     async function saveExpenseRecord(event) {
       event.preventDefault();
+      const codeVal = document.getElementById('exp-modal-code').value.trim();
+      if (!codeVal) {
+        alert('กรุณาเลือกรหัสงบประมาณจากชีท Budget ก่อนบันทึก');
+        return;
+      }
+
       const submitBtn = document.getElementById('exp-modal-submit-btn');
       const origText = submitBtn.textContent;
       submitBtn.disabled = true;
@@ -4548,7 +4728,7 @@
       const expenseObj = {
         mode: mode,
         rowNumber: parseInt(document.getElementById('exp-modal-row-num').value, 10) || 0,
-        code: document.getElementById('exp-modal-code').value.trim(),
+        code: codeVal,
         fiscalYear: document.getElementById('exp-modal-year').value.trim(),
         date: document.getElementById('exp-modal-date').value.trim(),
         docNo: document.getElementById('exp-modal-docno').value.trim(),
@@ -4575,7 +4755,6 @@
           expenseData: expenseObj
         });
 
-        // อัปเดต local state ทันทีเพื่อแสดงผลรวดเร็ว
         if (mode === 'edit' && editingExpenseSnapshot && editingExpenseSnapshot.expIndex >= 0) {
           sheetData.expenses[editingExpenseSnapshot.expIndex] = {
             ...sheetData.expenses[editingExpenseSnapshot.expIndex],
@@ -4631,7 +4810,6 @@
         alert('ลบรายการไม่สำเร็จ: ' + (err.message || err));
       }
     }
-
     // -------------------------------------------------------------
     // GAUGE CHART & DETAIL TABS
     // -------------------------------------------------------------
